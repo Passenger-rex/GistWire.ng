@@ -1,0 +1,27 @@
+{
+  "collections": {
+    "articles": {
+      "__doc__": {
+        "title": "string",
+        "slug": "string",
+        "author": "string",
+        "publishDate": "string",
+        "excerpt": "string",
+        "contentHtml": "string",
+        "coverImage": "string",
+        "category": "string",
+        "format": "string",
+        "views": "number"
+      }
+    },
+    "comments": {
+      "__doc__": {
+        "articleId": "string",
+        "name": "string",
+        "text": "string",
+        "date": "string",
+        "likes": "number"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/gemini/generate-cliffhanger", "destination": "/api/generate-cliffhanger" },
+    { "source": "/api/gemini/generate-social-copy", "destination": "/api/generate-social-copy" },
+    { "source": "/api/proxy-image", "destination": "/api/proxy-image" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

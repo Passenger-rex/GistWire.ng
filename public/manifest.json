@@ -1,0 +1,21 @@
+{
+  "short_name": "GistWire",
+  "name": "GistWire - Always First with the News",
+  "icons": [
+    {
+      "src": "/gistwire-logo-removebg-preview.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/gistwire-logo-removebg-preview.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "theme_color": "#00a85a",
+  "description": "Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news."
+}
