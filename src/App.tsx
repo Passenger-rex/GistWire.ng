@@ -279,7 +279,7 @@ export default function App() {
         {/* Desktop Detailed Navigation */}
         <nav className={`hidden lg:block border-y border-gray-200 bg-white shadow-sm relative w-full overflow-x-auto transition-all duration-300 ${isScrolled ? 'py-0' : 'py-0'}`}>
           <div className="max-w-7xl mx-auto px-4 flex items-center">
-            <div className="flex space-x-6 w-full whitespace-nowrap min-w-max md:min-w-0">
+            <div className="flex justify-between space-x-6 w-full whitespace-nowrap min-w-max md:min-w-0">
               {navLinks.map(link => {
                 const isActive = route === link.href || (link.href !== '/' && route.startsWith(link.href));
                 return (

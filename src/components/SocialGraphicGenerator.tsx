@@ -45,7 +45,7 @@ export default function SocialGraphicGenerator({
   const [aiWarning, setAiWarning] = useState<string | null>(null);
 
   // Design Settings
-  const [ratio, setRatio] = useState<'1:1' | '16:9' | '9:16'>('1:1');
+  const [ratio, setRatio] = useState<'1:1' | '16:9' | '9:16' | '4:5'>('1:1');
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [imageZoom, setImageZoom] = useState(1.0);
   const [imageYPosition, setImageYPosition] = useState(50); // 0% to 100%
@@ -273,6 +273,8 @@ export default function SocialGraphicGenerator({
         return { width: 1200, height: 675 };
       case "9:16":
         return { width: 1080, height: 1920 };
+      case "4:5":
+        return { width: 1080, height: 1350 };
       case "1:1":
       default:
         return { width: 1080, height: 1080 };
@@ -297,7 +299,8 @@ export default function SocialGraphicGenerator({
           width: `${canvasWidth}px`,
           height: `${canvasHeight}px`,
         },
-        quality: 0.95,
+        pixelRatio: 2, // <----- Ensures very high quality for posting
+        quality: 1.0,
         cacheBust: true,
       };
 
@@ -365,7 +368,7 @@ export default function SocialGraphicGenerator({
               className="relative shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] border border-gray-300 rounded-lg overflow-hidden bg-white shrink-0"
               style={{
                 width: "420px",
-                height: ratio === "1:1" ? "420px" : ratio === "16:9" ? "236.25px" : "746.67px",
+                height: ratio === "1:1" ? "420px" : ratio === "4:5" ? "525px" : ratio === "16:9" ? "236.25px" : "746.67px",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
               }}
             >
@@ -796,9 +799,9 @@ export default function SocialGraphicGenerator({
                   {/* Aspect Ratio Sizing presets */}
                   <div className="space-y-4 border-t border-gray-100 pt-4">
                     <h3 className="font-sans font-black uppercase text-xs text-gray-700 tracking-wider">Canvas aspect ratios</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(['1:1', '16:9', '9:16'] as const).map((r) => {
-                        const description = r === '1:1' ? 'Square (Instagram)' : r === '16:9' ? 'Landscape (X/FB)' : 'Story / Status';
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {(['1:1', '4:5', '16:9', '9:16'] as const).map((r) => {
+                        const description = r === '1:1' ? 'Square (Instagram)' : r === '4:5' ? 'Portrait (FB/IG)' : r === '16:9' ? 'Landscape (X/FB)' : 'Story / Status';
                         return (
                           <button
                             key={r}

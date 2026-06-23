@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { Article } from "../types";
 import { saveArticles, getArticles, deleteArticle } from "../lib/db";
-import WysiwygEditor from "react-simple-wysiwyg";
+import { 
+  Editor as WysiwygEditor,
+  Toolbar,
+  BtnBold,
+  BtnItalic,
+  BtnUnderline,
+  BtnStrikeThrough,
+  BtnNumberedList,
+  BtnBulletList,
+  BtnLink,
+  BtnClearFormatting,
+  BtnStyles,
+  HtmlButton,
+  Separator
+} from "react-simple-wysiwyg";
 import { auth, provider } from "../lib/firebase";
 import { onAuthStateChanged, signInWithPopup, signOut, User } from "firebase/auth";
 import { Sparkles } from "lucide-react";
@@ -240,7 +254,23 @@ export default function Editor() {
                   value={formData.contentHtml} 
                   onChange={(e) => setFormData({...formData, contentHtml: e.target.value})}
                   containerProps={{ style: { minHeight: '400px', resize: 'vertical' } }}
-                />
+                >
+                  <Toolbar>
+                    <BtnBold />
+                    <BtnItalic />
+                    <BtnUnderline />
+                    <BtnStrikeThrough />
+                    <Separator />
+                    <BtnNumberedList />
+                    <BtnBulletList />
+                    <Separator />
+                    <BtnLink />
+                    <BtnClearFormatting />
+                    <HtmlButton />
+                    <Separator />
+                    <BtnStyles />
+                  </Toolbar>
+                </WysiwygEditor>
               </div>
             </div>
           </form>

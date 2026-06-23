@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import fs from "fs";
 
 dotenv.config();
 
@@ -219,20 +220,108 @@ REQUIREMENTS:
     }
   });
 
+  // Helper function to inject OG tags
+  async function injectMetaTags(url: string, html: string) {
+    const articleMatch = url.match(/^\/article\/([^/?]+)/);
+    if (!articleMatch) return html;
+    
+    const slug = articleMatch[1];
+    try {
+      const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+      if (!fs.existsSync(configPath)) return html;
+      
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const projectId = config.projectId;
+      const databaseId = config.firestoreDatabaseId || "(default)";
+      
+      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
+      
+      const response = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "articles" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "slug" },
+                op: "EQUAL",
+                value: { stringValue: slug }
+              }
+            },
+            limit: 1
+          }
+        })
+      });
+      
+      const data = await response.json();
+      if (data && data.length > 0 && data[0].document) {
+        const docFields = data[0].document.fields;
+        const title = docFields.title?.stringValue || 'GistWire News';
+        const excerpt = docFields.excerpt?.stringValue || 'Read the full story on GistWire.';
+        const imageUrl = docFields.coverImage?.stringValue || docFields.imageSource?.stringValue || '';
+        const currentUrl = `https://${process.env.VITE_APP_URL || 'gistwire.com'}${url}`; // Fallback if no DOMAIN
+        
+        let metaTags = `
+          <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
+          <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          <meta property="og:type" content="article" />
+          <meta property="og:url" content="${currentUrl}" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
+          <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+        `;
+        if (imageUrl) {
+          metaTags += `
+          <meta property="og:image" content="${imageUrl}" />
+          <meta name="twitter:image" content="${imageUrl}" />
+          `;
+        }
+        
+        // Inject right before </head>
+        return html.replace('</head>', `${metaTags}</head>`);
+      }
+    } catch (e) {
+      console.error("Failed to fetch meta tags for article", e);
+    }
+    return html;
+  }
+
   // Serve static assets out of the correct paths depending on environment
   if (process.env.NODE_ENV !== "production") {
     // Vite middleware for dev mode
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
     });
     app.use(vite.middlewares);
+    
+    app.use('*', async (req, res, next) => {
+      try {
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        template = await injectMetaTags(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
+
   } else {
     // Production serving of compiled Vite assets
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    app.use(express.static(distPath, { index: false }));
+    app.get("*", async (req, res) => {
+      try {
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.join(distPath, "index.html"), 'utf-8');
+        template = await injectMetaTags(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        res.status(500).end(e.message);
+      }
     });
   }
 
