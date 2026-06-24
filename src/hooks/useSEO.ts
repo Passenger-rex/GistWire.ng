@@ -16,13 +16,9 @@ interface SEOProps {
 }
 
 export function useSEO({
-  title = 'GistWire News - Breaking Stories, Sports & Tech Updates',
-  description = 'Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire.',
-  image = {
-    url: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80',
-    width: 1200,
-    height: 630
-  },
+  title,
+  description,
+  image,
   url = typeof window !== 'undefined' ? window.location.href : '',
   type = 'website',
   skip = false,
@@ -30,7 +26,7 @@ export function useSEO({
   author
 }: SEOProps) {
   useEffect(() => {
-    if (skip) return;
+    if (skip || !title) return;
 
     // Remove all previously injected SEO tags first
     document.querySelectorAll('[data-seo="true"]').forEach(el => el.remove());
