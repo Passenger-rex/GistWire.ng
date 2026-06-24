@@ -282,10 +282,20 @@ REQUIREMENTS:
           `;
         }
         if (imageUrl) {
+          let imgWidth = 1200;
+          let imgHeight = 630;
+          try {
+            const probe = (await import('probe-image-size')).default;
+            const dimensions = await probe(imageUrl);
+            imgWidth = dimensions.width;
+            imgHeight = dimensions.height;
+          } catch (err) {
+            console.error("Failed to probe image dimensions", err);
+          }
           metaTags += `
           <meta property="og:image" content="${imageUrl}" />
-          <meta property="og:image:width" content="1200" />
-          <meta property="og:image:height" content="630" />
+          <meta property="og:image:width" content="${imgWidth}" />
+          <meta property="og:image:height" content="${imgHeight}" />
           <meta name="twitter:image" content="${imageUrl}" />
           `;
         }
