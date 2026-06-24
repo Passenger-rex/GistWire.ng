@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import Home from "./pages/Home";
 import ArticleView from "./pages/ArticleView";
 import Editor from "./pages/Editor";
@@ -8,7 +9,6 @@ import DownloadLogo from "./pages/DownloadLogo";
 import Logo from "./components/Logo";
 import { Facebook, Linkedin, Instagram, Twitter, Search, Menu, X, ArrowUp } from 'lucide-react';
 import { useScrollHeader } from './hooks/useScrollHeader';
-import { useSEO } from './hooks/useSEO';
 
 export default function App() {
   const [route, setRoute] = useState(window.location.pathname || "/");
@@ -102,7 +102,6 @@ export default function App() {
     // Article URL: /category-slug/article-slug
     const slug = parts[1];
     content = <ArticleView slug={slug} />;
-    // Note: SEO is managed by ArticleView for articles
   } else if (parts.length === 1 && parts[0] !== 'search') {
     // Category URL: /category-slug
     const catSlug = parts[0];
@@ -112,18 +111,6 @@ export default function App() {
     // Home router (parts.length === 0)
     content = <Home />;
   }
-
-  useSEO({
-    title: pageTitle,
-    description: `${pageTitle} - Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage.`,
-    image: {
-      url: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80",
-      width: 1200,
-      height: 630
-    },
-    url: typeof window !== 'undefined' ? window.location.href : '',
-    skip: parts.length === 2 && parts[0] !== 'search'
-  });
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -220,6 +207,27 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-gray-50">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content="Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage." />
+        
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://gistwireng.vercel.app/" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content="Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage." />
+        <meta property="og:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
+        <meta property="og:site_name" content="Gist Wire" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://gistwireng.vercel.app/" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content="Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage." />
+        <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
+        <meta name="twitter:site" content="@gistwire" />
+        <meta name="twitter:creator" content="@gistwire" />
+      </Helmet>
+
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-[100]">
         {/* Top Header auto-collapses on scroll */}
         <div className={`transition-all duration-0 ease-in-out overflow-hidden transform-gpu [backface-visibility:hidden] ${isScrolled ? 'max-h-0 opacity-0' : 'max-h-10 opacity-100'}`}>

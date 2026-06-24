@@ -220,154 +220,6 @@ REQUIREMENTS:
     }
   });
 
-  // Helper function to inject OG tags
-  async function injectMetaTags(req: express.Request, html: string) {
-    const url = req.originalUrl;
-    // Hardcode production domain as requested by user
-    const fullBaseUrl = `https://gistwireng.vercel.app`;
-    let metaTags = `
-      <title data-seo="true">GistWire News - Breaking Stories, Sports & Tech Updates</title>
-      <meta name="description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
-      <meta property="og:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" data-seo="true" />
-      <meta property="og:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
-      <meta property="og:site_name" content="GistWire" data-seo="true" />
-      <meta property="og:type" content="website" data-seo="true" />
-      <meta property="og:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" data-seo="true" />
-      <meta property="og:image:width" content="1200" data-seo="true" />
-      <meta property="og:image:height" content="630" data-seo="true" />
-      <meta name="twitter:card" content="summary_large_image" data-seo="true" />
-      <meta name="twitter:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" data-seo="true" />
-      <meta name="twitter:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
-      <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" data-seo="true" />
-    `;
-
-    const metaTagRegex = /<!-- META_TAGS_START -->[\s\S]*<!-- META_TAGS_END -->/;
-
-    const cleanUrl = url.split('?')[0];
-    const parts = cleanUrl.split('/').filter(Boolean);
-    
-    // Check if route is an article (e.g., /sport/record-breaker...)
-    if (parts.length !== 2 || parts[0] === 'search' || parts[0] === 'api') {
-      return html.replace(metaTagRegex, metaTags);
-    }
-    
-    const slug = parts[1];
-    try {
-      const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
-      if (!fs.existsSync(configPath)) {
-        return html.replace(metaTagRegex, metaTags);
-      }
-      
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      const projectId = config.projectId;
-      const databaseId = config.firestoreDatabaseId || "(default)";
-      
-      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${config.apiKey}`;
-      
-      const response = await fetch(queryUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          structuredQuery: {
-            from: [{ collectionId: "articles" }],
-            where: {
-              fieldFilter: {
-                field: { fieldPath: "slug" },
-                op: "EQUAL",
-                value: { stringValue: slug }
-              }
-            },
-            limit: 1
-          }
-        })
-      });
-      
-      const data = await response.json();
-      if (data && data.length > 0 && data[0].document) {
-        const docFields = data[0].document.fields;
-        const title = docFields.title?.stringValue;
-        const excerpt = docFields.excerpt?.stringValue;
-        const imageUrl = docFields.coverImage?.stringValue;
-        const currentUrl = `${fullBaseUrl}${url}`;
-        
-        metaTags = `
-          <meta property="og:site_name" content="GistWire" data-seo="true" />
-          <meta property="og:type" content="article" data-seo="true" />
-          <meta property="og:url" content="${currentUrl}" data-seo="true" />
-          <meta name="twitter:card" content="summary_large_image" data-seo="true" />
-        `;
-        if (title) {
-          metaTags += `
-          <title data-seo="true">${title.replace(/"/g, '&quot;')}</title>
-          <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" data-seo="true" />
-          <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" data-seo="true" />
-          `;
-        } else {
-          metaTags += `\n<title data-seo="true">GistWire News</title>`;
-        }
-        if (excerpt) {
-          metaTags += `
-          <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" data-seo="true" />
-          <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" data-seo="true" />
-          <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" data-seo="true" />
-          `;
-        }
-        if (imageUrl) {
-          let imgWidth = 1200;
-          let imgHeight = 630;
-          try {
-            const probe = (await import('probe-image-size')).default;
-            const dimensions = await probe(imageUrl);
-            imgWidth = dimensions.width;
-            imgHeight = dimensions.height;
-          } catch (err) {
-            console.error("Failed to probe image dimensions", err);
-          }
-          metaTags += `
-          <meta property="og:image" content="${imageUrl}" data-seo="true" />
-          <meta property="og:image:width" content="${imgWidth}" data-seo="true" />
-          <meta property="og:image:height" content="${imgHeight}" data-seo="true" />
-          <meta name="twitter:image" content="${imageUrl}" data-seo="true" />
-          `;
-        }
-
-        const datePublished = docFields.date?.stringValue || new Date().toISOString();
-        const author = docFields.author?.stringValue;
-
-        metaTags += `
-        <script type="application/ld+json" data-seo="true">
-        {
-          "@context": "https://schema.org",
-          "@type": "NewsArticle",
-          "headline": ${JSON.stringify(title || "GistWire News")},
-          "image": ${JSON.stringify(imageUrl ? [imageUrl] : [])},
-          "datePublished": ${JSON.stringify(datePublished)},
-          "author": ${JSON.stringify(author ? [{ "@type": "Person", "name": author }] : [])},
-          "url": ${JSON.stringify(currentUrl)},
-          "publisher": {
-            "@type": "Organization",
-            "name": "GistWire",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "https://gistwire.com/favicon-32x32.png"
-            }
-          }
-        }
-        </script>
-        `;
-        
-        return html.replace(metaTagRegex, metaTags);
-      } else {
-        // If article not found, do not fall back to home page SEO
-        return html.replace(metaTagRegex, '');
-      }
-    } catch (e) {
-      console.error("Failed to fetch meta tags for article", e);
-    }
-    // If it failed, do not fall back to home page SEO for article routes
-    return html.replace(metaTagRegex, '');
-  }
-
   // Serve static assets out of the correct paths depending on environment
   if (process.env.NODE_ENV !== "production") {
     // Vite middleware for dev mode
@@ -382,7 +234,6 @@ REQUIREMENTS:
         const url = req.originalUrl;
         let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
-        template = await injectMetaTags(req, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         vite.ssrFixStacktrace(e);
@@ -398,7 +249,6 @@ REQUIREMENTS:
       try {
         const url = req.originalUrl;
         let template = fs.readFileSync(path.join(distPath, "index.html"), 'utf-8');
-        template = await injectMetaTags(req, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         res.status(500).end(e.message);
