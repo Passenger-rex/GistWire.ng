@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Article } from "../types";
 import { getArticleBySlug, getComments, saveComment, likeComment, CommentType, incrementViews, getArticles } from "../lib/db";
 import { MessageCircle, ThumbsUp, Facebook, Twitter, Linkedin, Link as LinkIcon, Share2 } from "lucide-react";
-import { useSEO } from "../hooks/useSEO";
+import ArticleSEO from "@/components/ArticleSEO";
 
 const createSlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -77,16 +77,8 @@ export default function ArticleView({ slug }: { slug: string }) {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  // Use the new hook for SEO
-  useSEO({
-    title: article ? `${article.title} - GistWire` : undefined,
-    description: article?.excerpt || article?.title || undefined,
-    image: article?.coverImage ? { url: article.coverImage } : undefined,
-    url: typeof window !== 'undefined' ? window.location.href : '',
-    type: 'article',
-    publishedTime: article?.date || undefined,
-    author: article?.author || undefined
-  });
+  // We use the new ArticleSEO component for better semantic structuring
+  // The actual injection happens inside the component
 
   useEffect(() => {
     const handleScroll = () => {
@@ -252,6 +244,15 @@ export default function ArticleView({ slug }: { slug: string }) {
 
   return (
     <>
+      <ArticleSEO
+        title={article.title}
+        description={article.excerpt || article.title}
+        slug={article.slug}
+        coverImage={article.coverImage}
+        category={article.category}
+        publishedAt={article.date || article.publishDate}
+        authorName={article.author}
+      />
       <div 
         className="fixed top-0 left-0 h-1 bg-[#00a85a] z-[200] transition-all duration-150 ease-out"
         style={{ width: `${scrollProgress}%` }}

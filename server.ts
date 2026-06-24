@@ -221,7 +221,10 @@ REQUIREMENTS:
   });
 
   // Helper function to inject OG tags
-  async function injectMetaTags(url: string, html: string) {
+  async function injectMetaTags(req: express.Request, html: string) {
+    const url = req.originalUrl;
+    // Hardcode production domain as requested by user
+    const fullBaseUrl = `https://gistwireng.vercel.app`;
     let metaTags = `
       <title data-seo="true">GistWire News - Breaking Stories, Sports & Tech Updates</title>
       <meta name="description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
@@ -285,7 +288,7 @@ REQUIREMENTS:
         const title = docFields.title?.stringValue;
         const excerpt = docFields.excerpt?.stringValue;
         const imageUrl = docFields.coverImage?.stringValue;
-        const currentUrl = `https://${process.env.VITE_APP_URL || 'gistwire.com'}${url}`;
+        const currentUrl = `${fullBaseUrl}${url}`;
         
         metaTags = `
           <meta property="og:site_name" content="GistWire" data-seo="true" />
@@ -354,11 +357,15 @@ REQUIREMENTS:
         `;
         
         return html.replace(metaTagRegex, metaTags);
+      } else {
+        // If article not found, do not fall back to home page SEO
+        return html.replace(metaTagRegex, '');
       }
     } catch (e) {
       console.error("Failed to fetch meta tags for article", e);
     }
-    return html.replace(metaTagRegex, metaTags);
+    // If it failed, do not fall back to home page SEO for article routes
+    return html.replace(metaTagRegex, '');
   }
 
   // Serve static assets out of the correct paths depending on environment
@@ -375,7 +382,7 @@ REQUIREMENTS:
         const url = req.originalUrl;
         let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
-        template = await injectMetaTags(url, template);
+        template = await injectMetaTags(req, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         vite.ssrFixStacktrace(e);
@@ -391,7 +398,7 @@ REQUIREMENTS:
       try {
         const url = req.originalUrl;
         let template = fs.readFileSync(path.join(distPath, "index.html"), 'utf-8');
-        template = await injectMetaTags(url, template);
+        template = await injectMetaTags(req, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         res.status(500).end(e.message);
