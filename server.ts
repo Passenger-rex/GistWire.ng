@@ -238,19 +238,21 @@ REQUIREMENTS:
       <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
     `;
 
+    const metaTagRegex = /<!-- META_TAGS_START -->[\s\S]*<!-- META_TAGS_END -->/;
+
     const cleanUrl = url.split('?')[0];
     const parts = cleanUrl.split('/').filter(Boolean);
     
     // Check if route is an article (e.g., /sport/record-breaker...)
     if (parts.length !== 2 || parts[0] === 'search' || parts[0] === 'api') {
-      return html.replace('<!-- META_TAGS -->', metaTags);
+      return html.replace(metaTagRegex, metaTags);
     }
     
     const slug = parts[1];
     try {
       const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
       if (!fs.existsSync(configPath)) {
-        return html.replace('<!-- META_TAGS -->', metaTags);
+        return html.replace(metaTagRegex, metaTags);
       }
       
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -325,13 +327,38 @@ REQUIREMENTS:
           <meta name="twitter:image" content="${imageUrl}" />
           `;
         }
+
+        const datePublished = docFields.date?.stringValue || new Date().toISOString();
+        const author = docFields.author?.stringValue;
+
+        metaTags += `
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "NewsArticle",
+          "headline": ${JSON.stringify(title || "GistWire News")},
+          "image": ${JSON.stringify(imageUrl ? [imageUrl] : [])},
+          "datePublished": ${JSON.stringify(datePublished)},
+          "author": ${JSON.stringify(author ? [{ "@type": "Person", "name": author }] : [])},
+          "url": ${JSON.stringify(currentUrl)},
+          "publisher": {
+            "@type": "Organization",
+            "name": "GistWire",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://gistwire.com/favicon-32x32.png"
+            }
+          }
+        }
+        </script>
+        `;
         
-        return html.replace('<!-- META_TAGS -->', metaTags);
+        return html.replace(metaTagRegex, metaTags);
       }
     } catch (e) {
       console.error("Failed to fetch meta tags for article", e);
     }
-    return html.replace('<!-- META_TAGS -->', metaTags);
+    return html.replace(metaTagRegex, metaTags);
   }
 
   // Serve static assets out of the correct paths depending on environment

@@ -116,6 +116,11 @@ export default function App() {
   useSEO({
     title: pageTitle,
     description: `${pageTitle} - Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage.`,
+    image: {
+      url: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80",
+      width: 1200,
+      height: 630
+    },
     url: typeof window !== 'undefined' ? window.location.href : '',
     skip: parts.length === 2 && parts[0] !== 'search'
   });

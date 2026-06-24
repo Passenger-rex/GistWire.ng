@@ -81,9 +81,11 @@ export default function ArticleView({ slug }: { slug: string }) {
   useSEO({
     title: article ? `${article.title} - GistWire` : undefined,
     description: article?.excerpt || article?.title || undefined,
-    imageUrl: article?.coverImage || undefined,
+    image: article?.coverImage ? { url: article.coverImage } : undefined,
     url: typeof window !== 'undefined' ? window.location.href : '',
-    type: 'article'
+    type: 'article',
+    publishedTime: article?.date || undefined,
+    author: article?.author || undefined
   });
 
   useEffect(() => {
