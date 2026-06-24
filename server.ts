@@ -223,19 +223,19 @@ REQUIREMENTS:
   // Helper function to inject OG tags
   async function injectMetaTags(url: string, html: string) {
     let metaTags = `
-      <title>GistWire News - Breaking Stories, Sports & Tech Updates</title>
-      <meta name="description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." />
-      <meta property="og:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" />
-      <meta property="og:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." />
-      <meta property="og:site_name" content="GistWire" />
-      <meta property="og:type" content="website" />
-      <meta property="og:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" />
-      <meta name="twitter:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." />
-      <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
+      <title data-seo="true">GistWire News - Breaking Stories, Sports & Tech Updates</title>
+      <meta name="description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
+      <meta property="og:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" data-seo="true" />
+      <meta property="og:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
+      <meta property="og:site_name" content="GistWire" data-seo="true" />
+      <meta property="og:type" content="website" data-seo="true" />
+      <meta property="og:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" data-seo="true" />
+      <meta property="og:image:width" content="1200" data-seo="true" />
+      <meta property="og:image:height" content="630" data-seo="true" />
+      <meta name="twitter:card" content="summary_large_image" data-seo="true" />
+      <meta name="twitter:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" data-seo="true" />
+      <meta name="twitter:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." data-seo="true" />
+      <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" data-seo="true" />
     `;
 
     const metaTagRegex = /<!-- META_TAGS_START -->[\s\S]*<!-- META_TAGS_END -->/;
@@ -288,25 +288,25 @@ REQUIREMENTS:
         const currentUrl = `https://${process.env.VITE_APP_URL || 'gistwire.com'}${url}`;
         
         metaTags = `
-          <meta property="og:site_name" content="GistWire" />
-          <meta property="og:type" content="article" />
-          <meta property="og:url" content="${currentUrl}" />
-          <meta name="twitter:card" content="summary_large_image" />
+          <meta property="og:site_name" content="GistWire" data-seo="true" />
+          <meta property="og:type" content="article" data-seo="true" />
+          <meta property="og:url" content="${currentUrl}" data-seo="true" />
+          <meta name="twitter:card" content="summary_large_image" data-seo="true" />
         `;
         if (title) {
           metaTags += `
-          <title>${title.replace(/"/g, '&quot;')}</title>
-          <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
-          <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
+          <title data-seo="true">${title.replace(/"/g, '&quot;')}</title>
+          <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" data-seo="true" />
+          <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" data-seo="true" />
           `;
         } else {
-          metaTags += `\n<title>GistWire News</title>`;
+          metaTags += `\n<title data-seo="true">GistWire News</title>`;
         }
         if (excerpt) {
           metaTags += `
-          <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
-          <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" />
-          <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" data-seo="true" />
+          <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" data-seo="true" />
+          <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" data-seo="true" />
           `;
         }
         if (imageUrl) {
@@ -321,10 +321,10 @@ REQUIREMENTS:
             console.error("Failed to probe image dimensions", err);
           }
           metaTags += `
-          <meta property="og:image" content="${imageUrl}" />
-          <meta property="og:image:width" content="${imgWidth}" />
-          <meta property="og:image:height" content="${imgHeight}" />
-          <meta name="twitter:image" content="${imageUrl}" />
+          <meta property="og:image" content="${imageUrl}" data-seo="true" />
+          <meta property="og:image:width" content="${imgWidth}" data-seo="true" />
+          <meta property="og:image:height" content="${imgHeight}" data-seo="true" />
+          <meta name="twitter:image" content="${imageUrl}" data-seo="true" />
           `;
         }
 
@@ -332,7 +332,7 @@ REQUIREMENTS:
         const author = docFields.author?.stringValue;
 
         metaTags += `
-        <script type="application/ld+json">
+        <script type="application/ld+json" data-seo="true">
         {
           "@context": "https://schema.org",
           "@type": "NewsArticle",

@@ -16,9 +16,13 @@ interface SEOProps {
 }
 
 export function useSEO({
-  title,
-  description,
-  image,
+  title = 'GistWire News - Breaking Stories, Sports & Tech Updates',
+  description = 'Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire.',
+  image = {
+    url: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80',
+    width: 1200,
+    height: 630
+  },
   url = typeof window !== 'undefined' ? window.location.href : '',
   type = 'website',
   skip = false,
@@ -28,17 +32,25 @@ export function useSEO({
   useEffect(() => {
     if (skip) return;
 
-    // Helper to set meta tags and remove duplicates
+    // Remove all previously injected SEO tags first
+    document.querySelectorAll('[data-seo="true"]').forEach(el => el.remove());
+
+    // Helper to set meta tags
     const setMetaTag = (attr: string, attrValue: string, content: string) => {
       if (!content) return;
-      const elements = document.querySelectorAll(`meta[${attr}="${attrValue}"]`);
-      
-      // Remove all existing matching tags to prevent duplicates
-      elements.forEach(el => el.remove());
+      // We don't need to remove existing matching tags here because we clear all data-seo="true" elements upfront.
+      // However, to be safe and override any existing static tags that weren't cleaned up:
+      const existing = document.querySelectorAll(`meta[${attr}="${attrValue}"]`);
+      existing.forEach(el => {
+        if (!el.hasAttribute('data-seo')) {
+          el.remove(); // Also remove static ones to prevent duplicates if any exist
+        }
+      });
 
       const element = document.createElement('meta');
       element.setAttribute(attr, attrValue);
       element.setAttribute('content', content);
+      element.setAttribute('data-seo', 'true');
       document.head.appendChild(element);
     };
 
@@ -71,6 +83,7 @@ export function useSEO({
       const link = document.createElement('link');
       link.setAttribute('rel', 'canonical');
       link.setAttribute('href', url);
+      link.setAttribute('data-seo', 'true');
       document.head.appendChild(link);
     }
 
@@ -106,6 +119,7 @@ export function useSEO({
 
       const script = document.createElement('script');
       script.setAttribute('type', 'application/ld+json');
+      script.setAttribute('data-seo', 'true');
       script.textContent = JSON.stringify(schema);
       document.head.appendChild(script);
     }
