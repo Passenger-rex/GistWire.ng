@@ -117,6 +117,7 @@ export default function App() {
     title: pageTitle,
     description: `${pageTitle} - Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage.`,
     url: typeof window !== 'undefined' ? window.location.href : '',
+    skip: parts.length === 2 && parts[0] !== 'search'
   });
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });

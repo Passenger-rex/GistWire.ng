@@ -238,12 +238,15 @@ REQUIREMENTS:
       <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
     `;
 
-    const articleMatch = url.match(/^\/article\/([^/?]+)/);
-    if (!articleMatch) {
+    const cleanUrl = url.split('?')[0];
+    const parts = cleanUrl.split('/').filter(Boolean);
+    
+    // Check if route is an article (e.g., /sport/record-breaker...)
+    if (parts.length !== 2 || parts[0] === 'search' || parts[0] === 'api') {
       return html.replace('<!-- META_TAGS -->', metaTags);
     }
     
-    const slug = articleMatch[1];
+    const slug = parts[1];
     try {
       const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
       if (!fs.existsSync(configPath)) {

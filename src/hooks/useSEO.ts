@@ -8,6 +8,7 @@ interface SEOProps {
   imageHeight?: string | number;
   url?: string;
   type?: string;
+  skip?: boolean;
 }
 
 export function useSEO({
@@ -17,9 +18,12 @@ export function useSEO({
   imageWidth,
   imageHeight,
   url = typeof window !== 'undefined' ? window.location.href : '',
-  type = 'website'
+  type = 'website',
+  skip = false
 }: SEOProps) {
   useEffect(() => {
+    if (skip) return;
+
     // Helper to set meta tags
     const setMetaTag = (attr: string, attrValue: string, content: string) => {
       if (!content) return;
@@ -54,11 +58,22 @@ export function useSEO({
       if (imageHeight) setMetaTag('property', 'og:image:height', imageHeight.toString());
     }
 
+    // Canonical URL
+    if (url) {
+      let link = document.querySelector(`link[rel="canonical"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'canonical');
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', url);
+    }
+
     // Update URL & Type
     if (url) setMetaTag('property', 'og:url', url);
     if (type) setMetaTag('property', 'og:type', type);
     
     setMetaTag('property', 'og:site_name', 'GistWire');
     setMetaTag('name', 'twitter:card', 'summary_large_image');
-  }, [title, description, imageUrl, imageWidth, imageHeight, url, type]);
+  }, [title, description, imageUrl, imageWidth, imageHeight, url, type, skip]);
 }
