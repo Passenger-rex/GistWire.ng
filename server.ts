@@ -299,6 +299,8 @@ REQUIREMENTS:
           .replace(/<meta property="og:site_name".*?>/, '')
           .replace(/<meta property="og:type".*?>/, '')
           .replace(/<meta property="og:image".*?>/, '')
+          .replace(/<meta property="og:image:width".*?>/, '')
+          .replace(/<meta property="og:image:height".*?>/, '')
           .replace(/<meta name="twitter:card".*?>/, '')
           .replace(/<meta name="twitter:title".*?>/, '')
           .replace(/<meta name="twitter:description".*?>/, '')
@@ -306,8 +308,6 @@ REQUIREMENTS:
           
         if (title) {
           metaTags += `\n<title>${title.replace(/"/g, '&quot;')}</title>`;
-        } else {
-          metaTags += `\n<title>GistWire News</title>`;
         }
         
         // Inject right before </head>
