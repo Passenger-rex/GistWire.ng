@@ -1,20 +1,17 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# GistWire News
 
-# Run and deploy your AI Studio app
+GistWire is a premier online news and media platform providing the latest breaking news, celebrity gists, sports updates, technology trends, and exclusive stories. 
 
-This contains everything you need to run your app locally.
+## Features
+- **Dynamic SEO Support**: Implements complete server-side and client-side meta tags for seamless sharing across Twitter, Facebook, and LinkedIn.
+- **Content Management**: An admin dashboard allows reporters to quickly publish and manage news stories.
+- **Article Interactions**: Users can comment on and like articles, with full real-time updates.
+- **Fast & Responsive UI**: Clean typography and styling designed to read like a high-end publication. Built with React and Tailwind CSS.
+- **Full-stack Configuration**: Runs on Express serving an SPA through Vite with Firestore integration for data persistence.
 
-View your app in AI Studio: https://ai.studio/apps/05d01ffd-36a6-451b-8025-e95bb12af3d3
+## Development setup
+1. Install dependencies with `npm install`.
+2. Ensure Firebase configuration is valid.
+3. Start the dev server using `npm run dev`.
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Built with Vite, React, Tailwind CSS, Express, and Firebase.

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Article } from "../types";
 import { getArticleBySlug, getComments, saveComment, likeComment, CommentType, incrementViews, getArticles } from "../lib/db";
 import { MessageCircle, ThumbsUp, Facebook, Twitter, Linkedin, Link as LinkIcon, Share2 } from "lucide-react";
+import { useSEO } from "../hooks/useSEO";
 
 const createSlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -70,34 +71,20 @@ export default function ArticleView({ slug }: { slug: string }) {
       if (found) {
         getComments(found.id).then(setComments);
         incrementViews(slug);
-        
-        // SEO Meta updates
-        document.title = `${found.title} - GistWire`;
-        let metaDesc = document.querySelector('meta[name="description"]');
-        if (!metaDesc) {
-          metaDesc = document.createElement('meta');
-          metaDesc.setAttribute('name', 'description');
-          document.head.appendChild(metaDesc);
-        }
-        metaDesc.setAttribute('content', found.excerpt || found.title);
-
-        const setMetaTag = (property: string, content: string) => {
-          let meta = document.querySelector(`meta[property="${property}"]`);
-          if (!meta) {
-            meta = document.createElement('meta');
-            meta.setAttribute('property', property);
-            document.head.appendChild(meta);
-          }
-          meta.setAttribute('content', content);
-        };
-        setMetaTag('og:title', found.title);
-        setMetaTag('og:description', found.excerpt || '');
-        if (found.coverImage) setMetaTag('og:image', found.coverImage);
       }
       setLoading(false);
     });
     window.scrollTo(0, 0);
   }, [slug]);
+
+  // Use the new hook for SEO
+  useSEO({
+    title: article ? `${article.title} - GistWire` : undefined,
+    description: article?.excerpt || article?.title || undefined,
+    imageUrl: article?.coverImage || undefined,
+    url: typeof window !== 'undefined' ? window.location.href : '',
+    type: 'article'
+  });
 
   useEffect(() => {
     const handleScroll = () => {

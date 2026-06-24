@@ -8,6 +8,7 @@ import DownloadLogo from "./pages/DownloadLogo";
 import Logo from "./components/Logo";
 import { Facebook, Linkedin, Instagram, Twitter, Search, Menu, X, ArrowUp } from 'lucide-react';
 import { useScrollHeader } from './hooks/useScrollHeader';
+import { useSEO } from './hooks/useSEO';
 
 export default function App() {
   const [route, setRoute] = useState(window.location.pathname || "/");
@@ -101,6 +102,7 @@ export default function App() {
     // Article URL: /category-slug/article-slug
     const slug = parts[1];
     content = <ArticleView slug={slug} />;
+    // Note: SEO is managed by ArticleView for articles
   } else if (parts.length === 1 && parts[0] !== 'search') {
     // Category URL: /category-slug
     const catSlug = parts[0];
@@ -111,16 +113,11 @@ export default function App() {
     content = <Home />;
   }
 
-  useEffect(() => {
-    document.title = pageTitle;
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', `${pageTitle} - Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage.`);
-  }, [pageTitle]);
+  useSEO({
+    title: pageTitle,
+    description: `${pageTitle} - Your premium source for up-to-the-minute updates, celebrity gists, and unfiltered news from across the nation to the global stage.`,
+    url: typeof window !== 'undefined' ? window.location.href : '',
+  });
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 

@@ -222,13 +222,33 @@ REQUIREMENTS:
 
   // Helper function to inject OG tags
   async function injectMetaTags(url: string, html: string) {
+    let metaTags = `
+      <title>GistWire News - Breaking Stories, Sports & Tech Updates</title>
+      <meta name="description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." />
+      <meta property="og:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" />
+      <meta property="og:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." />
+      <meta property="og:site_name" content="GistWire" />
+      <meta property="og:type" content="website" />
+      <meta property="og:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="GistWire News - Breaking Stories, Sports & Tech Updates" />
+      <meta name="twitter:description" content="Get the latest breaking news, sports updates, tech trends, and exclusive stories on GistWire." />
+      <meta name="twitter:image" content="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80" />
+    `;
+
     const articleMatch = url.match(/^\/article\/([^/?]+)/);
-    if (!articleMatch) return html;
+    if (!articleMatch) {
+      return html.replace('<!-- META_TAGS -->', metaTags);
+    }
     
     const slug = articleMatch[1];
     try {
       const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
-      if (!fs.existsSync(configPath)) return html;
+      if (!fs.existsSync(configPath)) {
+        return html.replace('<!-- META_TAGS -->', metaTags);
+      }
       
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       const projectId = config.projectId;
@@ -262,7 +282,7 @@ REQUIREMENTS:
         const imageUrl = docFields.coverImage?.stringValue;
         const currentUrl = `https://${process.env.VITE_APP_URL || 'gistwire.com'}${url}`;
         
-        let metaTags = `
+        metaTags = `
           <meta property="og:site_name" content="GistWire" />
           <meta property="og:type" content="article" />
           <meta property="og:url" content="${currentUrl}" />
@@ -270,9 +290,12 @@ REQUIREMENTS:
         `;
         if (title) {
           metaTags += `
+          <title>${title.replace(/"/g, '&quot;')}</title>
           <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
           <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
           `;
+        } else {
+          metaTags += `\n<title>GistWire News</title>`;
         }
         if (excerpt) {
           metaTags += `
@@ -300,33 +323,12 @@ REQUIREMENTS:
           `;
         }
         
-        // Remove default meta tags so they don't conflict
-        let cleanedHtml = html
-          .replace(/<title>.*?<\/title>/, '')
-          .replace(/<meta name="description".*?>/, '')
-          .replace(/<meta property="og:title".*?>/, '')
-          .replace(/<meta property="og:description".*?>/, '')
-          .replace(/<meta property="og:site_name".*?>/, '')
-          .replace(/<meta property="og:type".*?>/, '')
-          .replace(/<meta property="og:image".*?>/, '')
-          .replace(/<meta property="og:image:width".*?>/, '')
-          .replace(/<meta property="og:image:height".*?>/, '')
-          .replace(/<meta name="twitter:card".*?>/, '')
-          .replace(/<meta name="twitter:title".*?>/, '')
-          .replace(/<meta name="twitter:description".*?>/, '')
-          .replace(/<meta name="twitter:image".*?>/, '');
-          
-        if (title) {
-          metaTags += `\n<title>${title.replace(/"/g, '&quot;')}</title>`;
-        }
-        
-        // Inject right before </head>
-        return cleanedHtml.replace('</head>', `${metaTags}</head>`);
+        return html.replace('<!-- META_TAGS -->', metaTags);
       }
     } catch (e) {
       console.error("Failed to fetch meta tags for article", e);
     }
-    return html;
+    return html.replace('<!-- META_TAGS -->', metaTags);
   }
 
   // Serve static assets out of the correct paths depending on environment
