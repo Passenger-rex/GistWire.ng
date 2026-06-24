@@ -257,31 +257,61 @@ REQUIREMENTS:
       const data = await response.json();
       if (data && data.length > 0 && data[0].document) {
         const docFields = data[0].document.fields;
-        const title = docFields.title?.stringValue || 'GistWire News';
-        const excerpt = docFields.excerpt?.stringValue || 'Read the full story on GistWire.';
-        const imageUrl = docFields.coverImage?.stringValue || docFields.imageSource?.stringValue || '';
-        const currentUrl = `https://${process.env.VITE_APP_URL || 'gistwire.com'}${url}`; // Fallback if no DOMAIN
+        const title = docFields.title?.stringValue;
+        const excerpt = docFields.excerpt?.stringValue;
+        const imageUrl = docFields.coverImage?.stringValue;
+        const currentUrl = `https://${process.env.VITE_APP_URL || 'gistwire.com'}${url}`;
         
         let metaTags = `
-          <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
-          <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
-          <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" />
           <meta property="og:site_name" content="GistWire" />
           <meta property="og:type" content="article" />
           <meta property="og:url" content="${currentUrl}" />
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
-          <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
         `;
+        if (title) {
+          metaTags += `
+          <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
+          <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
+          `;
+        }
+        if (excerpt) {
+          metaTags += `
+          <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          `;
+        }
         if (imageUrl) {
           metaTags += `
           <meta property="og:image" content="${imageUrl}" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
           <meta name="twitter:image" content="${imageUrl}" />
           `;
         }
         
+        // Remove default meta tags so they don't conflict
+        let cleanedHtml = html
+          .replace(/<title>.*?<\/title>/, '')
+          .replace(/<meta name="description".*?>/, '')
+          .replace(/<meta property="og:title".*?>/, '')
+          .replace(/<meta property="og:description".*?>/, '')
+          .replace(/<meta property="og:site_name".*?>/, '')
+          .replace(/<meta property="og:type".*?>/, '')
+          .replace(/<meta property="og:image".*?>/, '')
+          .replace(/<meta name="twitter:card".*?>/, '')
+          .replace(/<meta name="twitter:title".*?>/, '')
+          .replace(/<meta name="twitter:description".*?>/, '')
+          .replace(/<meta name="twitter:image".*?>/, '');
+          
+        if (title) {
+          metaTags += `\n<title>${title.replace(/"/g, '&quot;')}</title>`;
+        } else {
+          metaTags += `\n<title>GistWire News</title>`;
+        }
+        
         // Inject right before </head>
-        return html.replace('</head>', `${metaTags}</head>`);
+        return cleanedHtml.replace('</head>', `${metaTags}</head>`);
       }
     } catch (e) {
       console.error("Failed to fetch meta tags for article", e);
