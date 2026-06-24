@@ -3,6 +3,7 @@ import { Article } from "../types";
 import { saveArticles, getArticles, deleteArticle } from "../lib/db";
 import { 
   Editor as WysiwygEditor,
+  EditorProvider,
   Toolbar,
   BtnBold,
   BtnItalic,
@@ -250,27 +251,29 @@ export default function Editor() {
             <div className="mb-8">
               <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Article Body</label>
               <div className="bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-[#00a85a] transition text-gray-800">
-                <WysiwygEditor 
-                  value={formData.contentHtml} 
-                  onChange={(e) => setFormData({...formData, contentHtml: e.target.value})}
-                  containerProps={{ style: { minHeight: '400px', resize: 'vertical' } }}
-                >
-                  <Toolbar>
-                    <BtnBold />
-                    <BtnItalic />
-                    <BtnUnderline />
-                    <BtnStrikeThrough />
-                    <Separator />
-                    <BtnNumberedList />
-                    <BtnBulletList />
-                    <Separator />
-                    <BtnLink />
-                    <BtnClearFormatting />
-                    <HtmlButton />
-                    <Separator />
-                    <BtnStyles />
-                  </Toolbar>
-                </WysiwygEditor>
+                <EditorProvider>
+                  <WysiwygEditor 
+                    value={formData.contentHtml} 
+                    onChange={(e) => setFormData({...formData, contentHtml: e.target.value})}
+                    containerProps={{ style: { minHeight: '400px', resize: 'vertical' } }}
+                  >
+                    <Toolbar>
+                      <BtnBold />
+                      <BtnItalic />
+                      <BtnUnderline />
+                      <BtnStrikeThrough />
+                      <Separator />
+                      <BtnNumberedList />
+                      <BtnBulletList />
+                      <Separator />
+                      <BtnLink />
+                      <BtnClearFormatting />
+                      <HtmlButton />
+                      <Separator />
+                      <BtnStyles />
+                    </Toolbar>
+                  </WysiwygEditor>
+                </EditorProvider>
               </div>
             </div>
           </form>

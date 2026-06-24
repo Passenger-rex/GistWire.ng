@@ -234,7 +234,7 @@ REQUIREMENTS:
       const projectId = config.projectId;
       const databaseId = config.firestoreDatabaseId || "(default)";
       
-      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
+      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${config.apiKey}`;
       
       const response = await fetch(queryUrl, {
         method: "POST",
@@ -265,6 +265,8 @@ REQUIREMENTS:
         let metaTags = `
           <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
           <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" />
+          <meta property="og:site_name" content="GistWire" />
           <meta property="og:type" content="article" />
           <meta property="og:url" content="${currentUrl}" />
           <meta name="twitter:card" content="summary_large_image" />
