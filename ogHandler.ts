@@ -16,10 +16,13 @@ export async function generateOgImage(req: any, res: any) {
 
     if (!fontBuffer) {
       try {
-        const fontResponse = await fetch('https://github.com/rsms/inter/raw/master/docs/font-files/Inter-SemiBold.woff');
-        fontBuffer = await fontResponse.arrayBuffer();
+        const fontPath = path.resolve(process.cwd(), 'src/assets/inter-bold.woff');
+        fontBuffer = fs.readFileSync(fontPath).buffer.slice(
+          fs.readFileSync(fontPath).byteOffset,
+          fs.readFileSync(fontPath).byteOffset + fs.readFileSync(fontPath).byteLength
+        ) as ArrayBuffer;
       } catch (e) {
-        console.error("Failed to fetch font, falling back to local if possible", e);
+        console.error("Failed to load local font", e);
         // Provide a dummy buffer if failed, though it will error in Satori
         fontBuffer = new ArrayBuffer(0);
       }
