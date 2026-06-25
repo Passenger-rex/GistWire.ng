@@ -27,7 +27,7 @@ export default function ArticleSEO({
   authorName,
 }: ArticleSEOProps) {
   const url = slug.includes('/') ? `${SITE_URL}/${slug}` : `${SITE_URL}/${category ? createSlug(category) : 'news'}/${slug}`;
-  const ogTitle = title.length > 65 ? title.substring(0, 62) + "..." : title;
+  const ogTitle = title.length > 60 ? title.substring(0, 57) + "..." : title;
   const pageTitleBase = title.length > 45 ? title.substring(0, 42) + "..." : title;
   const pageTitle = `${pageTitleBase} | ${SITE_NAME}`;
 

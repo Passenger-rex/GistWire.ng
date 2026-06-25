@@ -62,11 +62,15 @@ export default async function handler(req, res) {
       if (data && data.length > 0 && data[0].document) {
         const docFields = data[0].document.fields;
         const rawTitle = docFields.title?.stringValue || "GistWire News";
-        const ogTitle = rawTitle.length > 65 ? rawTitle.substring(0, 62) + "..." : rawTitle;
+        const ogTitle = rawTitle.length > 60 ? rawTitle.substring(0, 57) + "..." : rawTitle;
         const pageTitle = `${rawTitle.length > 45 ? rawTitle.substring(0, 42) + "..." : rawTitle} | Gist Wire`;
         const rawExcerpt = docFields.excerpt?.stringValue || docFields.title?.stringValue || "";
         const excerpt = rawExcerpt.length > 120 ? rawExcerpt.substring(0, 117) + "..." : rawExcerpt;
         const imageUrl = docFields.coverImage?.stringValue || docFields.imageUrl?.stringValue || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
+        // Use wsrv.nl to force 1200x630 aspect ratio for social cards
+        const optimizedImageUrl = imageUrl.includes('unsplash.com') ? 
+          (imageUrl.split('?')[0] + "?w=1200&h=630&fit=crop&q=80") : 
+          `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&w=1200&h=630&fit=cover`;
         const datePublished = docFields.date?.stringValue || docFields.publishDate?.stringValue || new Date().toISOString();
         const author = docFields.author?.stringValue || "GistWire";
         const currentUrl = `${fullBaseUrl}${url}`;
@@ -82,8 +86,8 @@ export default async function handler(req, res) {
     <meta property="og:url" content="${currentUrl}" />
     <meta property="og:title" content="${ogTitle.replace(/"/g, '&quot;')}" />
     <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
-    <meta property="og:image" content="${imageUrl}" />
-    <meta property="og:image:secure_url" content="${imageUrl}" />
+    <meta property="og:image" content="${optimizedImageUrl}" />
+    <meta property="og:image:secure_url" content="${optimizedImageUrl}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
@@ -97,7 +101,7 @@ export default async function handler(req, res) {
     <meta name="twitter:creator" content="@gistwire" />
     <meta name="twitter:title" content="${ogTitle.replace(/"/g, '&quot;')}" />
     <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
-    <meta name="twitter:image" content="${imageUrl}" />
+    <meta name="twitter:image" content="${optimizedImageUrl}" />
     <!-- META_TAGS_END -->
         `;
         
