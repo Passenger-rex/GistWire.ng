@@ -270,8 +270,10 @@ REQUIREMENTS:
       const data = await response.json();
       if (data && data.length > 0 && data[0].document) {
         const docFields = data[0].document.fields;
-        const title = docFields.title?.stringValue || "GistWire News";
-        const excerpt = docFields.excerpt?.stringValue || docFields.title?.stringValue || "";
+        const rawTitle = docFields.title?.stringValue || "GistWire News";
+        const title = rawTitle.length > 60 ? rawTitle.substring(0, 57) + "..." : rawTitle;
+        const rawExcerpt = docFields.excerpt?.stringValue || docFields.title?.stringValue || "";
+        const excerpt = rawExcerpt.length > 120 ? rawExcerpt.substring(0, 117) + "..." : rawExcerpt;
         const imageUrl = docFields.coverImage?.stringValue || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
         const datePublished = docFields.date?.stringValue || docFields.publishDate?.stringValue || new Date().toISOString();
         const author = docFields.author?.stringValue || "GistWire";

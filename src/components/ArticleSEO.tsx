@@ -27,11 +27,12 @@ export default function ArticleSEO({
   authorName,
 }: ArticleSEOProps) {
   const url = slug.includes('/') ? `${SITE_URL}/${slug}` : `${SITE_URL}/${category ? createSlug(category) : 'news'}/${slug}`;
-  const pageTitle = `${title} | ${SITE_NAME}`;
+  const truncatedTitle = title.length > 60 ? title.substring(0, 57) + "..." : title;
+  const pageTitle = `${truncatedTitle} | ${SITE_NAME}`;
 
-  // Truncate description to ~160 chars for safety
+  // Truncate description to ~120 chars for safety
   const metaDesc =
-    description?.length > 160 ? description.slice(0, 157) + "…" : description;
+    description?.length > 120 ? description.slice(0, 117) + "…" : description;
 
   return (
     <Helmet>
