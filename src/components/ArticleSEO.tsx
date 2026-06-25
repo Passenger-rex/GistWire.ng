@@ -27,8 +27,9 @@ export default function ArticleSEO({
   authorName,
 }: ArticleSEOProps) {
   const url = slug.includes('/') ? `${SITE_URL}/${slug}` : `${SITE_URL}/${category ? createSlug(category) : 'news'}/${slug}`;
-  const truncatedTitle = title.length > 60 ? title.substring(0, 57) + "..." : title;
-  const pageTitle = `${truncatedTitle} | ${SITE_NAME}`;
+  const ogTitle = title.length > 65 ? title.substring(0, 62) + "..." : title;
+  const pageTitleBase = title.length > 45 ? title.substring(0, 42) + "..." : title;
+  const pageTitle = `${pageTitleBase} | ${SITE_NAME}`;
 
   // Truncate description to ~120 chars for safety
   const metaDesc =
@@ -46,7 +47,7 @@ export default function ArticleSEO({
       <meta property="og:type" content="article" />
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:url" content={url} />
-      <meta property="og:title" content={title} />
+      <meta property="og:title" content={ogTitle} />
       <meta property="og:description" content={metaDesc} />
       <meta property="og:locale" content="en_US" />
 
@@ -72,7 +73,7 @@ export default function ArticleSEO({
       {/* ── Twitter / X Card ─────────────────────────────────────────────── */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={url} />
-      <meta name="twitter:title" content={title} />
+      <meta name="twitter:title" content={ogTitle} />
       <meta name="twitter:description" content={metaDesc} />
       <meta name="twitter:site" content={TWITTER_HANDLE} />
       <meta name="twitter:creator" content={TWITTER_HANDLE} />

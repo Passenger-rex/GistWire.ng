@@ -271,24 +271,25 @@ REQUIREMENTS:
       if (data && data.length > 0 && data[0].document) {
         const docFields = data[0].document.fields;
         const rawTitle = docFields.title?.stringValue || "GistWire News";
-        const title = rawTitle.length > 60 ? rawTitle.substring(0, 57) + "..." : rawTitle;
+        const ogTitle = rawTitle.length > 65 ? rawTitle.substring(0, 62) + "..." : rawTitle;
+        const pageTitle = `${rawTitle.length > 45 ? rawTitle.substring(0, 42) + "..." : rawTitle} | Gist Wire`;
         const rawExcerpt = docFields.excerpt?.stringValue || docFields.title?.stringValue || "";
         const excerpt = rawExcerpt.length > 120 ? rawExcerpt.substring(0, 117) + "..." : rawExcerpt;
-        const imageUrl = docFields.coverImage?.stringValue || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
+        const imageUrl = docFields.coverImage?.stringValue || docFields.imageUrl?.stringValue || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
         const datePublished = docFields.date?.stringValue || docFields.publishDate?.stringValue || new Date().toISOString();
         const author = docFields.author?.stringValue || "GistWire";
         const currentUrl = `${fullBaseUrl}${url}`;
         
         const metaTags = `
     <!-- META_TAGS_START -->
-    <title>${title} | Gist Wire</title>
-    <meta name="title" content="${title.replace(/"/g, '&quot;')} | Gist Wire" />
+    <title>${pageTitle.replace(/"/g, '&quot;')}</title>
+    <meta name="title" content="${pageTitle.replace(/"/g, '&quot;')}" />
     <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" />
     
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="Gist Wire" />
     <meta property="og:url" content="${currentUrl}" />
-    <meta property="og:title" content="${title.replace(/"/g, '&quot;')} | Gist Wire" />
+    <meta property="og:title" content="${ogTitle.replace(/"/g, '&quot;')}" />
     <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
     <meta property="og:image" content="${imageUrl}" />
     <meta property="og:image:secure_url" content="${imageUrl}" />
@@ -303,7 +304,7 @@ REQUIREMENTS:
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@gistwire" />
     <meta name="twitter:creator" content="@gistwire" />
-    <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')} | Gist Wire" />
+    <meta name="twitter:title" content="${ogTitle.replace(/"/g, '&quot;')}" />
     <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
     <meta name="twitter:image" content="${imageUrl}" />
     <!-- META_TAGS_END -->
