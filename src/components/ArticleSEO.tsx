@@ -5,6 +5,8 @@ const SITE_NAME = "Gist Wire";
 const SITE_URL = "https://gistwireng.vercel.app";
 const TWITTER_HANDLE = "@gistwire"; // Placeholder
 
+const createSlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
 interface ArticleSEOProps {
   title: string;
   description: string;
@@ -24,7 +26,7 @@ export default function ArticleSEO({
   publishedAt,
   authorName,
 }: ArticleSEOProps) {
-  const url = `${SITE_URL}/news/${slug}`;
+  const url = slug.includes('/') ? `${SITE_URL}/${slug}` : `${SITE_URL}/${category ? createSlug(category) : 'news'}/${slug}`;
   const pageTitle = `${title} | ${SITE_NAME}`;
 
   // Truncate description to ~160 chars for safety

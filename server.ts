@@ -220,6 +220,102 @@ REQUIREMENTS:
     }
   });
 
+  // Helper function to inject OG tags
+  async function injectMetaTags(req: express.Request, html: string) {
+    const url = req.originalUrl;
+    const fullBaseUrl = `https://gistwireng.vercel.app`;
+    const metaTagRegex = /<!-- META_TAGS_START -->[\s\S]*<!-- META_TAGS_END -->/;
+
+    const cleanUrl = url.split('?')[0];
+    const parts = cleanUrl.split('/').filter(Boolean);
+    
+    // Check if route is an article (e.g., /sport/record-breaker...)
+    if (parts.length !== 2 || parts[0] === 'search' || parts[0] === 'api') {
+      return html;
+    }
+    
+    const category = parts[0];
+    const slug = parts[1];
+
+    try {
+      const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+      if (!fs.existsSync(configPath)) {
+        return html;
+      }
+      
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const projectId = config.projectId;
+      const databaseId = config.firestoreDatabaseId || "(default)";
+      
+      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${config.apiKey}`;
+      
+      const response = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "articles" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "slug" },
+                op: "EQUAL",
+                value: { stringValue: slug }
+              }
+            },
+            limit: 1
+          }
+        })
+      });
+      
+      const data = await response.json();
+      if (data && data.length > 0 && data[0].document) {
+        const docFields = data[0].document.fields;
+        const title = docFields.title?.stringValue || "GistWire News";
+        const excerpt = docFields.excerpt?.stringValue || docFields.title?.stringValue || "";
+        const imageUrl = docFields.coverImage?.stringValue || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
+        const datePublished = docFields.date?.stringValue || docFields.publishDate?.stringValue || new Date().toISOString();
+        const author = docFields.author?.stringValue || "GistWire";
+        const currentUrl = `${fullBaseUrl}${url}`;
+        
+        const metaTags = `
+    <!-- META_TAGS_START -->
+    <title>${title} | Gist Wire</title>
+    <meta name="title" content="${title.replace(/"/g, '&quot;')} | Gist Wire" />
+    <meta name="description" content="${excerpt.replace(/"/g, '&quot;')}" />
+    
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Gist Wire" />
+    <meta property="og:url" content="${currentUrl}" />
+    <meta property="og:title" content="${title.replace(/"/g, '&quot;')} | Gist Wire" />
+    <meta property="og:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+    <meta property="og:image" content="${imageUrl}" />
+    <meta property="og:image:secure_url" content="${imageUrl}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+    
+    <meta property="article:published_time" content="${datePublished}" />
+    <meta property="article:author" content="${author}" />
+    <meta property="article:section" content="${docFields.category?.stringValue || category}" />
+    
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@gistwire" />
+    <meta name="twitter:creator" content="@gistwire" />
+    <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')} | Gist Wire" />
+    <meta name="twitter:description" content="${excerpt.replace(/"/g, '&quot;')}" />
+    <meta name="twitter:image" content="${imageUrl}" />
+    <!-- META_TAGS_END -->
+        `;
+        
+        return html.replace(metaTagRegex, metaTags);
+      }
+    } catch (e) {
+      console.error("Failed to fetch meta tags for article", e);
+    }
+    
+    return html;
+  }
+
   // Serve static assets out of the correct paths depending on environment
   if (process.env.NODE_ENV !== "production") {
     // Vite middleware for dev mode
@@ -234,6 +330,7 @@ REQUIREMENTS:
         const url = req.originalUrl;
         let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
+        template = await injectMetaTags(req, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         vite.ssrFixStacktrace(e);
@@ -249,6 +346,7 @@ REQUIREMENTS:
       try {
         const url = req.originalUrl;
         let template = fs.readFileSync(path.join(distPath, "index.html"), 'utf-8');
+        template = await injectMetaTags(req, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         res.status(500).end(e.message);
