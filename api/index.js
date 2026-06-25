@@ -67,10 +67,8 @@ export default async function handler(req, res) {
         const rawExcerpt = docFields.excerpt?.stringValue || docFields.title?.stringValue || "";
         const excerpt = rawExcerpt.length > 120 ? rawExcerpt.substring(0, 117) + "..." : rawExcerpt;
         const imageUrl = docFields.coverImage?.stringValue || docFields.imageUrl?.stringValue || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
-        // Use wsrv.nl to force 1200x630 aspect ratio for social cards
-        const optimizedImageUrl = imageUrl.includes('unsplash.com') ? 
-          (imageUrl.split('?')[0] + "?w=1200&h=630&fit=crop&q=80") : 
-          `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&w=1200&h=630&fit=cover`;
+        // Generate dynamic OG image with text overlay
+        const optimizedImageUrl = `${fullBaseUrl}/api/og?title=${encodeURIComponent(ogTitle)}&image=${encodeURIComponent(imageUrl)}`;
         const datePublished = docFields.date?.stringValue || docFields.publishDate?.stringValue || new Date().toISOString();
         const author = docFields.author?.stringValue || "GistWire";
         const currentUrl = `${fullBaseUrl}${url}`;

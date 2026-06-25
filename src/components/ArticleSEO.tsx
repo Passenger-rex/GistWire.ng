@@ -35,6 +35,9 @@ export default function ArticleSEO({
   const metaDesc =
     description?.length > 120 ? description.slice(0, 117) + "…" : description;
 
+  // Generate dynamic OG image with text overlay
+  const optimizedImageUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(ogTitle)}&image=${encodeURIComponent(coverImage)}`;
+
   return (
     <Helmet>
       {/* ── Basic / Standard Meta Tags ────────────────────────────────────── */}
@@ -53,9 +56,9 @@ export default function ArticleSEO({
 
       {coverImage && (
         <>
-          <meta property="og:image" content={coverImage} />
+          <meta property="og:image" content={optimizedImageUrl} />
           {/* Include secure_url for some strict platforms */}
-          <meta property="og:image:secure_url" content={coverImage} />
+          <meta property="og:image:secure_url" content={optimizedImageUrl} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
           <meta property="og:image:type" content="image/jpeg" />
@@ -79,7 +82,7 @@ export default function ArticleSEO({
       <meta name="twitter:creator" content={TWITTER_HANDLE} />
       {coverImage && (
         <>
-          <meta name="twitter:image" content={coverImage} />
+          <meta name="twitter:image" content={optimizedImageUrl} />
           <meta name="twitter:image:alt" content={title} />
         </>
       )}
@@ -88,7 +91,7 @@ export default function ArticleSEO({
       {/* WhatsApp specifically likes having these in place, though OG usually handles it */}
       <meta itemProp="name" content={pageTitle} />
       <meta itemProp="description" content={metaDesc} />
-      {coverImage && <meta itemProp="image" content={coverImage} />}
+      {coverImage && <meta itemProp="image" content={optimizedImageUrl} />}
 
       {/* JSON-LD for rich snippets on Google Search */}
       <script type="application/ld+json">
