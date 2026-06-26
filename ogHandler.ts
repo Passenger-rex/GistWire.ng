@@ -82,58 +82,8 @@ export async function generateOgImage(req: any, res: any) {
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  opacity: 0.8
+                  opacity: 1
                 }
-              }
-            },
-            {
-              type: 'div',
-              props: {
-                style: {
-                  display: 'flex',
-                  flexDirection: 'column',
-                  backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                  padding: '50px 80px',
-                  borderRadius: '24px',
-                  maxWidth: '85%',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  border: '2px solid rgba(255,255,255,0.15)',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-                },
-                children: [
-                  {
-                    type: 'h1',
-                    props: {
-                      style: {
-                        fontSize: '84px',
-                        fontFamily: 'Roboto',
-                        fontWeight: 600,
-                        color: 'white',
-                        lineHeight: 1.1,
-                        margin: '0 0 24px 0',
-                        textAlign: 'center'
-                      },
-                      children: punchyHeadline
-                    }
-                  },
-                  {
-                    type: 'p',
-                    props: {
-                      style: {
-                        fontSize: '36px',
-                        fontFamily: 'Roboto',
-                        color: '#00a85a',
-                        margin: 0,
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '4px',
-                        textAlign: 'center'
-                      },
-                      children: cta
-                    }
-                  }
-                ]
               }
             }
           ]
