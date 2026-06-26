@@ -16,11 +16,9 @@ export async function generateOgImage(req: any, res: any) {
 
     if (!fontBuffer) {
       try {
-        const fontPath = path.resolve(process.cwd(), 'src/assets/inter-bold.woff');
-        fontBuffer = fs.readFileSync(fontPath).buffer.slice(
-          fs.readFileSync(fontPath).byteOffset,
-          fs.readFileSync(fontPath).byteOffset + fs.readFileSync(fontPath).byteLength
-        ) as ArrayBuffer;
+        const fontPath = path.resolve(process.cwd(), 'src/assets/Roboto-Bold.ttf');
+        const buf = fs.readFileSync(fontPath);
+        fontBuffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
       } catch (e) {
         console.error("Failed to load local font", e);
         // Provide a dummy buffer if failed, though it will error in Satori
@@ -78,7 +76,7 @@ export async function generateOgImage(req: any, res: any) {
                     props: {
                       style: {
                         fontSize: '84px',
-                        fontFamily: 'Inter',
+                        fontFamily: 'Roboto',
                         fontWeight: 600,
                         color: 'white',
                         lineHeight: 1.1,
@@ -93,7 +91,7 @@ export async function generateOgImage(req: any, res: any) {
                     props: {
                       style: {
                         fontSize: '36px',
-                        fontFamily: 'Inter',
+                        fontFamily: 'Roboto',
                         color: '#00a85a',
                         margin: 0,
                         fontWeight: 600,
@@ -115,7 +113,7 @@ export async function generateOgImage(req: any, res: any) {
         height: 630,
         fonts: [
           {
-            name: 'Inter',
+            name: 'Roboto',
             data: fontBuffer,
             weight: 600,
             style: 'normal',
