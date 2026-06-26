@@ -16,11 +16,10 @@ export async function generateOgImage(req: any, res: any) {
 
     if (!fontBuffer) {
       try {
-        const fontPath = path.resolve(process.cwd(), 'src/assets/Roboto-Bold.ttf');
-        const buf = fs.readFileSync(fontPath);
-        fontBuffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+        const fontResponse = await fetch('https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Bold.ttf');
+        fontBuffer = await fontResponse.arrayBuffer();
       } catch (e) {
-        console.error("Failed to load local font", e);
+        console.error("Failed to load remote font", e);
         // Provide a dummy buffer if failed, though it will error in Satori
         fontBuffer = new ArrayBuffer(0);
       }

@@ -226,7 +226,8 @@ REQUIREMENTS:
   // Helper function to inject OG tags
   async function injectMetaTags(req: express.Request, html: string) {
     const url = req.originalUrl;
-    const fullBaseUrl = `https://gistwireng.vercel.app`;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const fullBaseUrl = `${protocol}://${req.get('host') || 'gistwireng.vercel.app'}`;
     const metaTagRegex = /<!-- META_TAGS_START -->[\s\S]*<!-- META_TAGS_END -->/;
 
     const cleanUrl = url.split('?')[0];

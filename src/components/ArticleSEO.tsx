@@ -35,8 +35,9 @@ export default function ArticleSEO({
   const metaDesc =
     description?.length > 120 ? description.slice(0, 117) + "…" : description;
 
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
   // Generate dynamic OG image with text overlay
-  const optimizedImageUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(ogTitle)}&image=${encodeURIComponent(coverImage)}`;
+  const optimizedImageUrl = `${currentOrigin}/api/og?title=${encodeURIComponent(ogTitle)}&image=${encodeURIComponent(coverImage)}`;
 
   return (
     <Helmet>
