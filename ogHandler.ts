@@ -18,15 +18,29 @@ export async function generateOgImage(req: any, res: any) {
       image = `${protocol}://${host}${image}`;
     }
 
+    if (image.includes('unsplash.com')) {
+      if (!image.includes('fm=')) {
+        image += '&fm=jpg';
+      }
+    } else {
+      // Ensure the image is JPEG and resized to fit the OG dimensions perfectly
+      // This solves issues with WebP/AVIF images not being supported by Satori
+      image = `https://wsrv.nl/?url=${encodeURIComponent(image)}&output=jpg&w=1200&h=630&fit=cover`;
+    }
+
     // Verify image is actually an image, otherwise fallback
     try {
       const imgRes = await fetch(image);
       const contentType = imgRes.headers.get('content-type');
       if (!imgRes.ok || !contentType?.startsWith('image/')) {
-        image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop';
+        image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&fm=jpg';
+      } else {
+        const buffer = await imgRes.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        image = `data:${contentType};base64,${base64}`;
       }
     } catch (e) {
-      image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop';
+      image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&fm=jpg';
     }
     
     const words = title.split(' ').filter(Boolean);
