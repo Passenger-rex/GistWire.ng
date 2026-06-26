@@ -9,7 +9,25 @@ export async function generateOgImage(req: any, res: any) {
   try {
     const title = req.query.title as string || 'GistWire News';
     const cta = req.query.cta as string || 'Read Full Story →';
-    const image = req.query.image as string || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop';
+    let image = req.query.image as string || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop';
+    
+    // Fix relative image URLs
+    if (image.startsWith('/')) {
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+      const host = req.headers.host || 'localhost:3000';
+      image = `${protocol}://${host}${image}`;
+    }
+
+    // Verify image is actually an image, otherwise fallback
+    try {
+      const imgRes = await fetch(image);
+      const contentType = imgRes.headers.get('content-type');
+      if (!imgRes.ok || !contentType?.startsWith('image/')) {
+        image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop';
+      }
+    } catch (e) {
+      image = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop';
+    }
     
     const words = title.split(' ').filter(Boolean);
     const punchyHeadline = words.slice(0, 4).join(' ') + (words.length > 4 ? '...' : '');
