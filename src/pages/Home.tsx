@@ -171,8 +171,42 @@ export default function Home({ searchQuery, categoryQuery, isSlug }: { searchQue
           Latest in <span className="text-[#00a85a]">{categoryQuery}</span>
         </h2>
       )}
+
+      {/* Mobile Trending Carousel (visible only on mobile) */}
+      {!searchQuery && !categoryQuery && activeChip === 'All News' && trendingArticles.length > 0 && (
+        <div className="block lg:hidden mb-12">
+          <h3 className="flex items-center text-xs font-black uppercase tracking-widest border-b-[4px] border-[#111111] pb-2 mb-6 text-[#111111]">
+            <span className="w-2 h-2 bg-[#00a85a] mr-2 animate-pulse"></span> Trending Now
+          </h3>
+          <div className="flex overflow-x-auto gap-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory">
+            {trendingArticles.map((article, index) => (
+              <a 
+                key={article.id} 
+                href={`/${createSlug(article.category)}/${article.slug}`}
+                className="snap-start shrink-0 w-72 flex flex-col group border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm"
+              >
+                <div className="aspect-[16/9] w-full bg-gray-100 relative overflow-hidden">
+                  {article.coverImage && (
+                    <img src={article.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt={article.title} loading="lazy" />
+                  )}
+                  <div className="absolute top-2 left-2 bg-[#00a85a] text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded">
+                    #{index + 1} Trending
+                  </div>
+                </div>
+                <div className="p-4 flex flex-col flex-grow">
+                  <p className="text-[10px] font-black uppercase text-[#00a85a] mb-1 tracking-widest">{article.category}</p>
+                  <h4 className="text-sm font-bold text-[#111111] group-hover:text-[#00a85a] transition leading-snug line-clamp-3">
+                    {article.title}
+                  </h4>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 border-t-[4px] border-gray-100 pt-8 mt-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 border-t-[4px] border-gray-100 pt-8 mt-2 lg:mt-0 lg:border-t-0 lg:pt-0">
+
         <div className="lg:col-span-9">
           {Object.entries(categorizedArticles).map(([category, categoryArticles]) => (
             <div key={category} className="mb-12">
@@ -208,7 +242,7 @@ export default function Home({ searchQuery, categoryQuery, isSlug }: { searchQue
         </div>
 
         {/* Trending Sidebar */}
-        <aside className="lg:col-span-3 border-t lg:border-t-0 lg:border-l border-gray-200 pt-10 lg:pt-0 pl-0 lg:pl-10">
+        <aside className="hidden lg:block lg:col-span-3 lg:border-l border-gray-200 lg:pt-0 lg:pl-10">
           <div className="sticky top-10">
             <h3 className="flex items-center text-xs font-black uppercase tracking-widest border-b-[4px] border-[#111111] pb-2 mb-8 text-[#111111]">
               <span className="w-2 h-2 bg-[#00a85a] mr-2 animate-pulse"></span> Trending Now

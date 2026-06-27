@@ -1,5 +1,6 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
+import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
@@ -46,13 +47,13 @@ export async function generateOgImage(req: any, res: any) {
     const words = title.split(' ').filter(Boolean);
     const punchyHeadline = words.slice(0, 4).join(' ') + (words.length > 4 ? '...' : '');
 
-    if (!fontBuffer) {
+    if (!fontBuffer || fontBuffer.byteLength < 1000) {
       try {
-        const fontResponse = await fetch('https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Bold.ttf');
+        const fontResponse = await fetch('https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf');
+        if (!fontResponse.ok) throw new Error('Failed to fetch font');
         fontBuffer = await fontResponse.arrayBuffer();
       } catch (e) {
         console.error("Failed to load remote font", e);
-        // Provide a dummy buffer if failed, though it will error in Satori
         fontBuffer = new ArrayBuffer(0);
       }
     }
@@ -113,9 +114,14 @@ export async function generateOgImage(req: any, res: any) {
     const pngData = resvg.render();
     const pngBuffer = pngData.asPng();
 
-    res.setHeader('Content-Type', 'image/png');
+    // Compress to JPEG to reduce file size to < 1 MB
+    const jpegBuffer = await sharp(pngBuffer)
+      .jpeg({ quality: 80, force: true })
+      .toBuffer();
+
+    res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.status(200).send(pngBuffer);
+    res.status(200).send(jpegBuffer);
   } catch (error) {
     console.error('OG Image Generation Error:', error);
     res.status(500).send('Error generating image');
