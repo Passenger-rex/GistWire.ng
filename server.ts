@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import dotenv from "dotenv";
 import fs from "fs";
 import { generateOgImage } from "./ogHandler.ts";
@@ -11,6 +12,73 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+async function callAIGenerator(prompt: string, systemInstruction: string, provider: string, aiInstance: GoogleGenAI | null): Promise<string> {
+  if (provider === "groq") {
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) throw new Error("GROQ_API_KEY is not configured on the server.");
+    const openai = new OpenAI({ apiKey: groqKey, baseURL: "https://api.groq.com/openai/v1" });
+    const response = await openai.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.85
+    });
+    return response.choices[0]?.message?.content || "";
+  } else if (provider === "deepseek") {
+    const deepseekKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekKey) throw new Error("DEEPSEEK_API_KEY is not configured on the server.");
+    const openai = new OpenAI({ apiKey: deepseekKey, baseURL: "https://api.deepseek.com" });
+    const response = await openai.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.85
+    });
+    return response.choices[0]?.message?.content || "";
+  } else if (provider === "github") {
+    const githubKey = process.env.GITHUB_TOKEN;
+    if (!githubKey) throw new Error("GITHUB_TOKEN is not configured on the server.");
+    const openai = new OpenAI({ apiKey: githubKey, baseURL: "https://models.inference.ai.azure.com" });
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.85
+    });
+    return response.choices[0]?.message?.content || "";
+  } else if (provider === "gemini") {
+    if (!aiInstance) throw new Error("GEMINI_API_KEY is not configured on the server.");
+    let response;
+    try {
+      response = await aiInstance.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: { systemInstruction, temperature: 0.85 }
+      });
+    } catch (e: any) {
+      if (e.status === 503 || e.message?.includes("503") || e.message?.includes("UNAVAILABLE")) {
+        console.warn("gemini-3.5-flash is unavailable, falling back to gemini-3.1-pro-preview");
+        response = await aiInstance.models.generateContent({
+          model: "gemini-3.1-pro-preview",
+          contents: prompt,
+          config: { systemInstruction, temperature: 0.85 }
+        });
+      } else {
+        throw e;
+      }
+    }
+    return response.text || "";
+  } else {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -41,23 +109,10 @@ async function startServer() {
   // API handler for generating a social media cliffhanger headline
   app.post("/api/gemini/generate-cliffhanger", async (req, res) => {
     try {
-      const { title, excerpt, content } = req.body;
+      const { title, excerpt, content, provider = "groq" } = req.body;
 
       if (!title) {
         return res.status(400).json({ error: "Article title is required." });
-      }
-
-      if (!ai) {
-        // Fallback placeholder/explanation if apiKey is not set up
-        const mockedOptions = [
-          `${title} — What happens next will shock you!`,
-          `This change is coming soon. Here is what you need to know.`,
-          `The update everyone has been talking about has finally been released.`
-        ];
-        return res.json({
-          cliffhanger: mockedOptions[Math.floor(Math.random() * mockedOptions.length)],
-          warning: "GEMINI_API_KEY is not configured on your server. Simulated a curiosity hook."
-        });
       }
 
       const prompt = `
@@ -83,58 +138,42 @@ Article: "Celebrity musician responds to major cheating scandal on social media"
 Your Output: The response everyone was waiting for has finally arrived
 `;
 
-      let response;
+      const systemInstruction = "You are an expert social media editor and journalist. You write high-CTR, highly engaging, clean news-styled curiosity hooks without using any markdown characters, asterisks, hashtags or weird formatting of any kind.";
+      let cliffhanger = "";
+      
       try {
-        response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: prompt,
-          config: {
-            systemInstruction: "You are an expert social media editor and journalist. You write high-CTR, highly engaging, clean news-styled curiosity hooks without using any markdown characters, asterisks, hashtags or weird formatting of any kind.",
-            temperature: 0.85,
-          }
+        cliffhanger = await callAIGenerator(prompt, systemInstruction, provider, ai);
+      } catch (error: any) {
+        // Fallback placeholder/explanation if API call fails (e.g. keys missing)
+        console.warn(`Warning: Error with ${provider} API, using fallback:`, error.message);
+        const mockedOptions = [
+          `${title} — What happens next will shock you!`,
+          `This change is coming soon. Here is what you need to know.`,
+          `The update everyone has been talking about has finally been released.`
+        ];
+        return res.json({
+          cliffhanger: mockedOptions[Math.floor(Math.random() * mockedOptions.length)],
+          warning: `${provider.toUpperCase()} API Error: ${error.message}. Simulated a curiosity hook.`
         });
-      } catch (e: any) {
-        if (e.status === 503 || e.message?.includes("503") || e.message?.includes("UNAVAILABLE")) {
-          console.warn("gemini-3.5-flash is unavailable, falling back to gemini-3.1-pro-preview");
-          response = await ai.models.generateContent({
-            model: "gemini-3.1-pro-preview",
-            contents: prompt,
-            config: {
-              systemInstruction: "You are an expert social media editor and journalist. You write high-CTR, highly engaging, clean news-styled curiosity hooks without using any markdown characters, asterisks, hashtags or weird formatting of any kind.",
-              temperature: 0.85,
-            }
-          });
-        } else {
-          throw e;
-        }
       }
 
-      const cliffhanger = response.text ? response.text.trim().replace(/^['"\s]+|['"\s]+$/g, "") : "";
-      
+      cliffhanger = cliffhanger.trim().replace(/^['"\s]+|['"\s]+$/g, "");
       res.json({ cliffhanger });
     } catch (error: any) {
-      console.error("Error calling Gemini API:", error);
+      console.error("Error generating cliffhanger:", error);
       res.status(500).json({ error: error.message || "An error occurred while generating the cliffhanger." });
     }
   });
 
   app.post("/api/gemini/generate-social-copy", async (req, res) => {
     try {
-      const { title, excerpt, content, platform } = req.body;
+      const { title, excerpt, content, platform, provider = "groq" } = req.body;
 
       if (!title) {
         return res.status(400).json({ error: "Article title is required." });
       }
 
       const targetPlatform = platform || "Facebook";
-
-      if (!ai) {
-        const fallbackCopy = `Read our latest update: ${title}\n\n${targetPlatform} users, let us know your thoughts! #News`;
-        return res.json({
-          copy: fallbackCopy,
-          warning: "GEMINI_API_KEY is not configured on your server."
-        });
-      }
 
       const prompt = `
 Generate an engaging social media post caption tailored for ${targetPlatform}. 
@@ -157,37 +196,22 @@ REQUIREMENTS:
 3. If appropriate, add a call-to-action like "Read the full story: [LINK]". Leave [LINK] as a placeholder.
 `;
 
-      let response;
+      let copy = "";
       try {
-        response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: prompt,
-          config: {
-            systemInstruction: "You are an expert social media manager and journalist. You write high-CTR, highly engaging, clean news-styled captions.",
-            temperature: 0.85,
-          }
-        });
+        const systemInstruction = "You are an expert social media manager and journalist. You write high-CTR, highly engaging, clean news-styled captions.";
+        copy = await callAIGenerator(prompt, systemInstruction, provider, ai);
       } catch (e: any) {
-        if (e.status === 503 || e.message?.includes("503") || e.message?.includes("UNAVAILABLE")) {
-          console.warn("gemini-3.5-flash is unavailable, falling back to gemini-3.1-pro-preview");
-          response = await ai.models.generateContent({
-            model: "gemini-3.1-pro-preview",
-            contents: prompt,
-            config: {
-              systemInstruction: "You are an expert social media manager and journalist. You write high-CTR, highly engaging, clean news-styled captions.",
-              temperature: 0.85,
-            }
-          });
-        } else {
-          throw e;
-        }
+        console.warn(`Warning: Error with ${provider} API in generate-social-copy:`, e.message);
+        const fallbackCopy = `Read our latest update: ${title}\n\n${targetPlatform} users, let us know your thoughts! #News`;
+        return res.json({
+          copy: fallbackCopy,
+          warning: `${provider.toUpperCase()} API Error: ${e.message}. Using fallback copy.`
+        });
       }
 
-      const copy = response.text ? response.text.trim() : "";
-      
-      res.json({ copy });
+      res.json({ copy: copy ? copy.trim() : "" });
     } catch (error: any) {
-      console.error("Error calling Gemini API:", error);
+      console.error("Error generating social copy:", error);
       res.status(500).json({ error: error.message || "An error occurred while generating copy." });
     }
   });
@@ -220,6 +244,40 @@ REQUIREMENTS:
     } catch (error) {
       console.error("Image proxy error:", error);
       res.status(500).send("Failed to proxy image");
+    }
+  });
+
+  app.get("/api/link-preview", async (req, res) => {
+    try {
+      const { url } = req.query;
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "Missing URL parameter" });
+      }
+
+      const response = await fetch(decodeURIComponent(url), {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+      });
+      const html = await response.text();
+
+      const getMetaTag = (name: string) => {
+        const regex = new RegExp(
+          '<meta(?: [^>]+)?(?:name|property)=["\']' + name + '["\'][^>]*content=["\']([^"\']*)["\']', 'i'
+        );
+        const match = html.match(regex);
+        return match ? match[1] : null;
+      };
+
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const title = getMetaTag("og:title") || (titleMatch ? titleMatch[1] : "") || url;
+      const description = getMetaTag("og:description") || getMetaTag("description") || "";
+      const image = getMetaTag("og:image") || "";
+
+      res.json({ title, description, image, url });
+    } catch (error: any) {
+      console.error("Link preview error:", error);
+      res.status(500).json({ error: "Failed to fetch link preview", url: req.query.url });
     }
   });
 

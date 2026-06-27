@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
+import { Helmet } from "react-helmet-async";
 import { Article } from "../types";
 import { getArticleBySlug, getComments, saveComment, likeComment, CommentType, incrementViews, getArticles } from "../lib/db";
-import { MessageCircle, ThumbsUp, Facebook, Twitter, Linkedin, Link as LinkIcon, Share2 } from "lucide-react";
-import ArticleSEO from "../components/ArticleSEO";
+import { MessageCircle, ThumbsUp, Facebook, Twitter, Linkedin, Link as LinkIcon, Share2, Eye, X } from "lucide-react";
 
 const createSlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -44,6 +44,74 @@ function RecentArticles({ excludeId, category, limit = 3, inline = false }: { ex
   );
 }
 
+function SocialPreviewModal({ article, onClose, siteUrl, siteName }: { article: Article, onClose: () => void, siteUrl: string, siteName: string }) {
+  const [activeTab, setActiveTab] = useState<'google' | 'twitter'>('google');
+  
+  const articleUrl = `${siteUrl}/${createSlug(article.category)}/${article.slug}`;
+  const pageTitle = `${article.title.length > 45 ? article.title.substring(0, 42) + "..." : article.title} | ${siteName}`;
+  const metaDesc = (article.excerpt || article.title).length > 120 ? (article.excerpt || article.title).substring(0, 117) + "..." : (article.excerpt || article.title);
+  const coverImage = article.coverImage || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-[300] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h3 className="font-black text-sm uppercase tracking-widest text-[#111111]">SEO & Social Preview</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-[#111111]">
+            <X size={16} />
+          </button>
+        </div>
+        
+        <div className="flex border-b border-gray-100">
+          <button 
+            onClick={() => setActiveTab('google')}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition ${activeTab === 'google' ? 'text-[#00a85a] border-b-2 border-[#00a85a]' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            Google Search
+          </button>
+          <button 
+            onClick={() => setActiveTab('twitter')}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition ${activeTab === 'twitter' ? 'text-[#1da1f2] border-b-2 border-[#1da1f2]' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            Twitter Card
+          </button>
+        </div>
+
+        <div className="p-6 bg-gray-50 min-h-[300px] flex items-center justify-center">
+          {activeTab === 'google' ? (
+            <div className="bg-white p-4 rounded-lg shadow-sm w-full max-w-xl text-left border border-gray-100">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">GW</div>
+                <div>
+                  <div className="text-xs text-[#202124] font-sans">{siteName}</div>
+                  <div className="text-[11px] text-[#4d5156] font-sans">{articleUrl}</div>
+                </div>
+              </div>
+              <a href={articleUrl} target="_blank" rel="noopener noreferrer" className="block text-[20px] font-sans text-[#1a0dab] hover:underline cursor-pointer leading-tight mb-1">
+                {pageTitle}
+              </a>
+              <p className="text-[13px] text-[#4d5156] font-sans line-clamp-2">{metaDesc}</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm w-full max-w-sm text-left border border-gray-200 overflow-hidden">
+              <div className="w-full h-48 bg-gray-200 border-b border-gray-200">
+                <img src={coverImage} alt="Twitter card" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-3 bg-gray-50">
+                <div className="text-[13px] text-gray-500 font-sans mb-0.5">{siteUrl.replace(/^https?:\/\//, '')}</div>
+                <a href={articleUrl} target="_blank" rel="noopener noreferrer" className="block text-[15px] text-[#0f1419] font-sans font-bold leading-snug line-clamp-1 mb-0.5 hover:underline">
+                  {article.title}
+                </a>
+                <div className="text-[13px] text-gray-500 font-sans line-clamp-2">{metaDesc}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ArticleView({ slug }: { slug: string }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +122,7 @@ export default function ArticleView({ slug }: { slug: string }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [likedComments, setLikedComments] = useState<Record<string, boolean>>({});
   const [hasLikedArticle, setHasLikedArticle] = useState(false);
+  const [showSocialPreview, setShowSocialPreview] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const calculateReadTime = (text: string | undefined | null) => {
@@ -239,17 +308,73 @@ export default function ArticleView({ slug }: { slug: string }) {
     );
   }
 
+  const SITE_NAME = "Gist Wire";
+  const SITE_URL = "https://gistwireng.vercel.app";
+  const TWITTER_HANDLE = "@gistwire";
+  const articleUrl = `${SITE_URL}/${createSlug(article.category)}/${article.slug}`;
+  const ogTitle = article.title.length > 60 ? article.title.substring(0, 57) + "..." : article.title;
+  const pageTitle = `${article.title.length > 45 ? article.title.substring(0, 42) + "..." : article.title} | ${SITE_NAME}`;
+  const metaDesc = (article.excerpt || article.title).length > 120 ? (article.excerpt || article.title).substring(0, 117) + "..." : (article.excerpt || article.title);
+  const coverImage = article.coverImage || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
+  const optimizedImageUrl = `${currentOrigin}/api/og?title=${encodeURIComponent(ogTitle)}&image=${encodeURIComponent(coverImage)}`;
+  const publishedAt = article.date || article.publishDate;
+
   return (
     <>
-      <ArticleSEO
-        title={article.title}
-        description={article.excerpt || article.title}
-        slug={`${createSlug(article.category)}/${article.slug}`}
-        coverImage={article.coverImage || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80"}
-        category={article.category}
-        publishedAt={article.date || article.publishDate}
-        authorName={article.author}
-      />
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="title" content={pageTitle} />
+        <meta name="description" content={metaDesc} />
+        <link rel="canonical" href={articleUrl} />
+
+        <meta property="og:type" content="article" />
+        <meta property="og:site_name" content={SITE_NAME} />
+        <meta property="og:url" content={articleUrl} />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={metaDesc} />
+        <meta property="og:locale" content="en_US" />
+        
+        <meta property="og:image" content={optimizedImageUrl} />
+        <meta property="og:image:secure_url" content={optimizedImageUrl} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:alt" content={article.title} />
+
+        {publishedAt && <meta property="article:published_time" content={publishedAt} />}
+        {article.author && <meta property="article:author" content={article.author} />}
+        {article.category && <meta property="article:section" content={article.category} />}
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={articleUrl} />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={metaDesc} />
+        <meta name="twitter:site" content={TWITTER_HANDLE} />
+        <meta name="twitter:creator" content={TWITTER_HANDLE} />
+        <meta name="twitter:image" content={optimizedImageUrl} />
+        <meta name="twitter:image:alt" content={article.title} />
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            headline: article.title,
+            image: [coverImage],
+            datePublished: publishedAt,
+            author: article.author ? [{ "@type": "Person", "name": article.author }] : [],
+            url: articleUrl,
+            publisher: {
+              "@type": "Organization",
+              name: SITE_NAME,
+              logo: {
+                "@type": "ImageObject",
+                url: `${SITE_URL}/favicon-32x32.png`,
+              },
+            },
+          })}
+        </script>
+      </Helmet>
       <div 
         className="fixed top-0 left-0 h-1 bg-[#00a85a] z-[200] transition-all duration-150 ease-out"
         style={{ width: `${scrollProgress}%` }}
@@ -379,10 +504,10 @@ export default function ArticleView({ slug }: { slug: string }) {
           {/* Related Articles Section */}
           <div className="mt-16 pt-10 border-t-[4px] border-gray-100">
              <h3 className="font-sans font-black text-2xl uppercase tracking-tighter mb-8 text-[#111111]">
-               More in {article.category}
+               Read Also
              </h3>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <RecentArticles excludeId={article.id} category={article.category} limit={2} inline />
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <RecentArticles excludeId={article.id} category={article.category} limit={3} inline />
              </div>
           </div>
 
@@ -484,6 +609,26 @@ export default function ArticleView({ slug }: { slug: string }) {
         </aside>
       </div>
     </article>
+    
+    <button
+      onClick={() => setShowSocialPreview(true)}
+      className="fixed bottom-6 right-6 bg-[#111111] text-white p-3 rounded-full shadow-xl hover:bg-[#00a85a] hover:scale-105 transition-all z-[100] flex items-center justify-center group"
+      title="Preview SEO & Social Cards"
+    >
+      <Eye size={20} />
+      <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold text-xs uppercase tracking-widest group-hover:ml-2">
+        Preview SEO
+      </span>
+    </button>
+
+    {showSocialPreview && (
+      <SocialPreviewModal 
+        article={article} 
+        onClose={() => setShowSocialPreview(false)} 
+        siteUrl={SITE_URL} 
+        siteName={SITE_NAME} 
+      />
+    )}
     </>
   );
 }

@@ -43,6 +43,25 @@ export default function Editor() {
   });
   
   const [articles, setArticles] = useState<Article[]>([]);
+  const [linkPrompt, setLinkPrompt] = useState<{
+    url: string;
+    displayText: string;
+    tempId: string;
+  } | null>(null);
+  
+  const [previewLink, setPreviewLink] = useState<{
+    url: string;
+    title: string;
+    description: string;
+    image: string;
+    top: number;
+    left: number;
+  } | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [adText, setAdText] = useState("");
+  const [adUrl, setAdUrl] = useState("");
+  const [savedSelection, setSavedSelection] = useState<Range | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -186,8 +205,113 @@ export default function Editor() {
     );
   }
 
+  const handleEditorClick = async (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    
+    if (anchor && anchor.href) {
+      e.preventDefault();
+      const rect = anchor.getBoundingClientRect();
+      
+      setIsLoadingPreview(true);
+      setPreviewLink({
+        url: anchor.href,
+        title: "Loading...",
+        description: "",
+        image: "",
+        top: rect.bottom + window.scrollY + 10,
+        left: Math.max(10, rect.left + window.scrollX - 100),
+      });
+      
+      try {
+        const res = await fetch(`/api/link-preview?url=${encodeURIComponent(anchor.href)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPreviewLink(prev => prev ? { 
+            ...prev, 
+            title: data.title || "No Title", 
+            description: data.description, 
+            image: data.image 
+          } : null);
+        } else {
+          setPreviewLink(prev => prev ? { ...prev, title: "Failed to load preview" } : null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch link preview:", err);
+        setPreviewLink(prev => prev ? { ...prev, title: "Failed to load preview" } : null);
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    } else {
+      if (!target.closest('.link-preview-card')) {
+        setPreviewLink(null);
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white relative">
+      {linkPrompt && (
+        <div className="fixed inset-0 bg-[#111111]/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm border-t-[4px] border-[#00a85a]">
+            <h3 className="font-sans font-black text-lg uppercase tracking-tighter text-[#111111] mb-6">Confirm Link</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">URL</label>
+                <input 
+                  type="text" 
+                  value={linkPrompt.url} 
+                  onChange={(e) => setLinkPrompt({...linkPrompt, url: e.target.value})}
+                  className="w-full text-sm border border-gray-300 rounded p-3 text-gray-800 focus:ring-2 focus:ring-[#00a85a] focus:border-transparent outline-none transition"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Display Text</label>
+                <input 
+                  type="text" 
+                  value={linkPrompt.displayText}
+                  onChange={(e) => setLinkPrompt({...linkPrompt, displayText: e.target.value})}
+                  className="w-full text-sm border border-gray-300 rounded p-3 text-gray-800 focus:ring-2 focus:ring-[#00a85a] focus:border-transparent outline-none transition"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const tempElement = document.getElementById(linkPrompt.tempId);
+                    if (tempElement) {
+                      tempElement.outerHTML = linkPrompt.displayText || linkPrompt.url;
+                    }
+                    setLinkPrompt(null);
+                  }}
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-[#111111] transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const tempElement = document.getElementById(linkPrompt.tempId);
+                    if (tempElement) {
+                      const linkHtml = `<a href="${linkPrompt.url}" target="_blank" rel="noopener noreferrer" class="text-[#00a85a] underline hover:text-[#00c86b]">${linkPrompt.displayText || linkPrompt.url}</a>`;
+                      tempElement.outerHTML = linkHtml;
+                      
+                      const editorCe = document.querySelector('.rsw-ce');
+                      if (editorCe) {
+                        setFormData(prev => ({ ...prev, contentHtml: editorCe.innerHTML }));
+                      }
+                    }
+                    setLinkPrompt(null);
+                  }}
+                  className="px-6 py-2 bg-[#00a85a] text-white text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-[#111111] transition"
+                >
+                  Insert Link
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-12">
         
         {/* Left Column - Main Editor */}
@@ -255,7 +379,49 @@ export default function Editor() {
                   <WysiwygEditor 
                     value={formData.contentHtml} 
                     onChange={(e) => setFormData({...formData, contentHtml: e.target.value})}
-                    containerProps={{ style: { minHeight: '400px', resize: 'vertical' } }}
+                    onPaste={(e) => {
+                      const clipboardData = e.clipboardData;
+                      if (!clipboardData) return;
+                      
+                      const htmlData = clipboardData.getData('text/html');
+                      const textData = clipboardData.getData('text/plain');
+                      
+                      const urlRegex = /(https?:\/\/[^\s]+)/g;
+                      const isSingleUrl = /^(https?:\/\/[^\s]+)$/.test(textData.trim());
+                      
+                      const selection = window.getSelection();
+                      const hasSelection = selection && selection.toString().trim().length > 0;
+
+                      if (isSingleUrl) {
+                        e.preventDefault();
+                        const tempId = `temp-link-${Date.now()}`;
+                        const selectedText = hasSelection ? selection.toString() : textData.trim();
+                        
+                        // Insert a temporary highlighted span
+                        const htmlToInsert = `<span id="${tempId}" style="background-color: #e6f7ef; border-bottom: 2px dashed #00a85a;">${selectedText}</span>`;
+                        document.execCommand('insertHTML', false, htmlToInsert);
+                        
+                        setLinkPrompt({
+                          url: textData.trim(),
+                          displayText: selectedText,
+                          tempId
+                        });
+                      } else if (!htmlData && urlRegex.test(textData)) {
+                        e.preventDefault();
+                        const htmlToInsert = textData
+                          .replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;')
+                          .replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00a85a] underline hover:text-[#00c86b]">$1</a>')
+                          .replace(/\n/g, '<br>');
+                        document.execCommand('insertHTML', false, htmlToInsert);
+                      }
+                    }}
+                    containerProps={{ 
+                      onClick: handleEditorClick,
+                      className: "prose max-w-none prose-a:text-[#00a85a] prose-a:underline hover:prose-a:text-[#00c86b] focus-within:outline-none p-4", 
+                      style: { minHeight: '400px', resize: 'vertical' } 
+                    }}
                   >
                     <Toolbar>
                       <BtnBold />
@@ -271,6 +437,24 @@ export default function Editor() {
                       <HtmlButton />
                       <Separator />
                       <BtnStyles />
+                      <Separator />
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          const selection = window.getSelection();
+                          if (selection && selection.rangeCount > 0) {
+                            setSavedSelection(selection.getRangeAt(0).cloneRange());
+                          } else {
+                            setSavedSelection(null);
+                          }
+                          setShowAdModal(true);
+                        }}
+                        className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition flex items-center gap-1"
+                        title="Insert Ad Block"
+                      >
+                        + Insert Ad
+                      </button>
                     </Toolbar>
                   </WysiwygEditor>
                 </EditorProvider>
@@ -427,6 +611,196 @@ export default function Editor() {
         }}
         publishedArticles={articles}
       />
+
+      {/* Link Preview Tooltip */}
+      {previewLink && (
+        <div 
+          className="link-preview-card absolute z-50 bg-white border border-gray-200 shadow-xl rounded-lg p-4 w-72 flex flex-col gap-3 transition-opacity animate-in fade-in"
+          style={{ top: previewLink.top, left: previewLink.left }}
+        >
+          {isLoadingPreview ? (
+            <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-widest">
+              <span className="w-2 h-2 bg-[#00a85a] rounded-full animate-pulse"></span> Loading preview...
+            </div>
+          ) : (
+            <>
+              {previewLink.image && (
+                <div className="w-full h-32 bg-gray-100 rounded overflow-hidden">
+                  <img src={previewLink.image} alt={previewLink.title} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="flex flex-col">
+                <h4 className="text-sm font-black text-[#111111] line-clamp-2 leading-tight">{previewLink.title}</h4>
+                {previewLink.description && (
+                  <p className="text-xs text-gray-500 line-clamp-2 mt-1">{previewLink.description}</p>
+                )}
+                <a href={previewLink.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-[#00a85a] hover:text-[#00c86b] mt-3 truncate block">
+                  {previewLink.url}
+                </a>
+              </div>
+              <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
+                <button 
+                  type="button" 
+                  onClick={() => setPreviewLink(null)} 
+                  className="flex-1 text-[10px] py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold uppercase tracking-widest rounded transition"
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Ad Modal */}
+      {showAdModal && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
+            <h3 className="font-black text-lg uppercase tracking-tight text-[#111111] mb-4">
+              Insert Advertisement
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">
+                  Ad Content
+                </label>
+                <textarea
+                  value={adText}
+                  onChange={(e) => setAdText(e.target.value)}
+                  className="w-full h-32 bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-medium focus:outline-none focus:border-[#00a85a] focus:ring-1 focus:ring-[#00a85a]"
+                  placeholder="Enter the ad copy..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">
+                  Link URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={adUrl}
+                  onChange={(e) => setAdUrl(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-medium focus:outline-none focus:border-[#00a85a] focus:ring-1 focus:ring-[#00a85a]"
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const preset1 = "Are you in agribusiness in Nigeria? Whether you are a farmer, agripreneur, or researcher, Afrimash is Nigeria's leading online marketplace for agricultural inputs, seeds, equipment, feeds, and more delivered to your farm. Apply for this scholarship and build something bigger when you return.";
+                    setAdText(preset1);
+                    setAdUrl("https://afrimash.com");
+                  }}
+                  className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 py-1 px-2 rounded"
+                >
+                  Preset: Afrimash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const preset2 = "Planning to build your brand online while you study abroad? Register your Nigerian domain name and get your website live before you travel. DomainKing.ng is Nigeria's most affordable and reliable domain registrar. .com.ng domains start from under N5,000. Set it up now so your online presence is ready when you land.";
+                    setAdText(preset2);
+                    setAdUrl("https://domainking.ng");
+                  }}
+                  className="text-[10px] font-bold uppercase tracking-widest text-purple-600 bg-purple-50 hover:bg-purple-100 py-1 px-2 rounded"
+                >
+                  Preset: DomainKing
+                </button>
+              </div>
+              
+              {adText && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Live Ad Preview
+                  </label>
+                  {adUrl ? (
+                    <a href={adUrl} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded text-center transition-colors">
+                      <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Advertisement</div>
+                      <div className="text-xs text-gray-700 leading-relaxed font-medium">
+                        {adText.split('\n').map((line, i) => (
+                          <span key={i}>
+                            {line}
+                            <br />
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-3">
+                        <span className="inline-block bg-[#00a85a] text-white px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest">
+                          Learn More
+                        </span>
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded text-center">
+                      <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Advertisement</div>
+                      <div className="text-xs text-gray-700 leading-relaxed font-medium">
+                        {adText.split('\n').map((line, i) => (
+                          <span key={i}>
+                            {line}
+                            <br />
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdModal(false);
+                    setAdText("");
+                    setAdUrl("");
+                  }}
+                  className="flex-1 py-3 text-sm font-bold uppercase tracking-widest bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (adText) {
+                      let contentHtml = adText.replace(/\n/g, "<br>");
+                      let adHtml = "";
+                      
+                      if (adUrl) {
+                        contentHtml += `<div class="mt-4"><span class="inline-block bg-[#00a85a] text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest">Learn More</span></div>`;
+                        const innerHtml = `<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Advertisement</div><div class="text-sm text-gray-700 leading-relaxed max-w-2xl mx-auto font-medium">${contentHtml}</div>`;
+                        adHtml = `<a href="${adUrl}" target="_blank" rel="noopener noreferrer" class="block my-8 p-6 bg-gray-50 hover:bg-gray-100 border-y-2 border-gray-200 rounded text-center clear-both transition-colors cursor-pointer text-inherit no-underline" contenteditable="false">${innerHtml}</a><p><br></p>`;
+                      } else {
+                        const innerHtml = `<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Advertisement</div><div class="text-sm text-gray-700 leading-relaxed max-w-2xl mx-auto font-medium">${contentHtml}</div>`;
+                        adHtml = `<div class="my-8 p-6 bg-gray-50 border-y-2 border-gray-200 rounded text-center clear-both" contenteditable="false">${innerHtml}</div><p><br></p>`;
+                      }
+                      
+                      // Focus contentEditable before inserting
+                      const editorBody = document.querySelector('.rsw-ce') as HTMLElement;
+                      if (editorBody) {
+                        editorBody.focus();
+                        if (savedSelection) {
+                          const selection = window.getSelection();
+                          if (selection) {
+                            selection.removeAllRanges();
+                            selection.addRange(savedSelection);
+                          }
+                        }
+                        document.execCommand('insertHTML', false, adHtml);
+                      }
+                    }
+                    setShowAdModal(false);
+                    setAdText("");
+                    setAdUrl("");
+                  }}
+                  className="flex-1 py-3 text-sm font-bold uppercase tracking-widest bg-[#00a85a] hover:bg-[#00c86b] text-white rounded-lg transition"
+                >
+                  Insert Ad
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

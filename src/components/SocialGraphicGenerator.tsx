@@ -42,6 +42,7 @@ export default function SocialGraphicGenerator({
   // Headline & AI State
   const [headline, setHeadline] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiProvider, setAiProvider] = useState("groq");
   const [aiWarning, setAiWarning] = useState<string | null>(null);
 
   // Design Settings
@@ -193,7 +194,8 @@ export default function SocialGraphicGenerator({
         body: JSON.stringify({
           title: articleData.title,
           excerpt: articleData.excerpt || "",
-          content: articleData.contentHtml || ""
+          content: articleData.contentHtml || "",
+          provider: aiProvider
         }),
       });
 
@@ -625,7 +627,15 @@ export default function SocialGraphicGenerator({
                       <div className="flex items-center gap-1.5 text-xs font-black uppercase text-[#00a85a] tracking-wider">
                         <Sparkles className="w-4 h-4" /> AI News Engine
                       </div>
-                      <span className="text-[9px] bg-[#00a85a] text-white px-2 py-0.5 rounded-full font-bold">GEMINI FLASH 3.5</span>
+                      <select 
+                        value={aiProvider}
+                        onChange={(e) => setAiProvider(e.target.value)}
+                        className="text-[9px] bg-white border border-[#00a85a]/30 text-[#00a85a] font-bold px-2 py-0.5 rounded-full outline-none cursor-pointer"
+                      >
+                        <option value="groq">GROQ (Llama 3)</option>
+                        <option value="deepseek">DEEPSEEK</option>
+                        <option value="github">GITHUB MODELS</option>
+                      </select>
                     </div>
 
                     <p className="text-xs text-gray-700 leading-relaxed font-medium">
