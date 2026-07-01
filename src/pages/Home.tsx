@@ -7,15 +7,18 @@ const createSlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '
 export default function Home({ searchQuery, categoryQuery, isSlug }: { searchQuery?: string, categoryQuery?: string, isSlug?: boolean }) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeChip, setActiveChip] = useState('All News');
+  const [activeChip, setActiveChip] = useState('Latest News');
 
-  const chips = ['All News', 'Trending', 'Breaking', "Editor's Pick", 'Politics', 'Business', 'Sports', 'World', 'Local'];
+  const chips = ['Latest News', 'Trending', 'Breaking', "Editor's Pick", 'Politics', 'Business', 'Sports', 'World', 'Local'];
 
   useEffect(() => {
     let isMounted = true;
     (async () => {
       setIsLoading(true);
       let allArticles = await getArticles();
+      // Sort all articles by newest first by default
+      allArticles.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+      
       if (!isMounted) return;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -117,9 +120,12 @@ export default function Home({ searchQuery, categoryQuery, isSlug }: { searchQue
   );
 
   let displayedArticles = articles;
-  if (activeChip !== 'All News') {
+  if (activeChip !== 'Latest News') {
     if (activeChip === 'Trending') {
-      displayedArticles = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0));
+      displayedArticles = [...articles]
+        .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+        .slice(0, 30)
+        .sort((a, b) => (b.views || 0) - (a.views || 0));
     } else if (activeChip === 'Breaking') {
        displayedArticles = [...articles].sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()).slice(0, 8);
     } else if (activeChip === "Editor's Pick") {
@@ -138,7 +144,11 @@ export default function Home({ searchQuery, categoryQuery, isSlug }: { searchQue
     categorizedArticles[article.category].push(article);
   });
 
-  const trendingArticles = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+  const trendingArticles = [...articles]
+    .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+    .slice(0, 20)
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 5);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -172,34 +182,27 @@ export default function Home({ searchQuery, categoryQuery, isSlug }: { searchQue
         </h2>
       )}
 
-      {/* Mobile Trending Carousel (visible only on mobile) */}
-      {!searchQuery && !categoryQuery && activeChip === 'All News' && trendingArticles.length > 0 && (
-        <div className="block lg:hidden mb-12">
+      {/* Mobile Trending (visible only on mobile) */}
+      {!searchQuery && !categoryQuery && activeChip === 'Latest News' && trendingArticles.length > 0 && (
+        <div className="block lg:hidden mb-12 border-b-[4px] border-gray-100 pb-8">
           <h3 className="flex items-center text-xs font-black uppercase tracking-widest border-b-[4px] border-[#111111] pb-2 mb-6 text-[#111111]">
             <span className="w-2 h-2 bg-[#00a85a] mr-2 animate-pulse"></span> Trending Now
           </h3>
-          <div className="flex overflow-x-auto gap-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory">
+          <div className="flex flex-col space-y-6">
             {trendingArticles.map((article, index) => (
-              <a 
-                key={article.id} 
-                href={`/${createSlug(article.category)}/${article.slug}`}
-                className="snap-start shrink-0 w-72 flex flex-col group border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm"
-              >
-                <div className="aspect-[16/9] w-full bg-gray-100 relative overflow-hidden">
-                  {article.coverImage && (
-                    <img src={article.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt={article.title} loading="lazy" />
-                  )}
-                  <div className="absolute top-2 left-2 bg-[#00a85a] text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded">
-                    #{index + 1} Trending
-                  </div>
-                </div>
-                <div className="p-4 flex flex-col flex-grow">
+              <div key={article.id} className="flex gap-4 group">
+                <span className="text-3xl font-display font-black text-gray-200 leading-none mt-1">
+                  {index + 1}
+                </span>
+                <div>
                   <p className="text-[10px] font-black uppercase text-[#00a85a] mb-1 tracking-widest">{article.category}</p>
-                  <h4 className="text-sm font-bold text-[#111111] group-hover:text-[#00a85a] transition leading-snug line-clamp-3">
-                    {article.title}
-                  </h4>
+                  <a href={`/${createSlug(article.category)}/${article.slug}`}>
+                    <h4 className="text-sm font-bold text-[#111111] group-hover:text-[#00a85a] transition leading-snug">
+                      {article.title}
+                    </h4>
+                  </a>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         </div>

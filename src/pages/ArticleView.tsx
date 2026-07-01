@@ -44,74 +44,6 @@ function RecentArticles({ excludeId, category, limit = 3, inline = false }: { ex
   );
 }
 
-function SocialPreviewModal({ article, onClose, siteUrl, siteName }: { article: Article, onClose: () => void, siteUrl: string, siteName: string }) {
-  const [activeTab, setActiveTab] = useState<'google' | 'twitter'>('google');
-  
-  const articleUrl = `${siteUrl}/${createSlug(article.category)}/${article.slug}`;
-  const pageTitle = `${article.title.length > 45 ? article.title.substring(0, 42) + "..." : article.title} | ${siteName}`;
-  const metaDesc = (article.excerpt || article.title).length > 120 ? (article.excerpt || article.title).substring(0, 117) + "..." : (article.excerpt || article.title);
-  const coverImage = article.coverImage || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&h=630&fit=crop&q=80";
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-[300] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h3 className="font-black text-sm uppercase tracking-widest text-[#111111]">SEO & Social Preview</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-[#111111]">
-            <X size={16} />
-          </button>
-        </div>
-        
-        <div className="flex border-b border-gray-100">
-          <button 
-            onClick={() => setActiveTab('google')}
-            className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition ${activeTab === 'google' ? 'text-[#00a85a] border-b-2 border-[#00a85a]' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            Google Search
-          </button>
-          <button 
-            onClick={() => setActiveTab('twitter')}
-            className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition ${activeTab === 'twitter' ? 'text-[#1da1f2] border-b-2 border-[#1da1f2]' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            Twitter Card
-          </button>
-        </div>
-
-        <div className="p-6 bg-gray-50 min-h-[300px] flex items-center justify-center">
-          {activeTab === 'google' ? (
-            <div className="bg-white p-4 rounded-lg shadow-sm w-full max-w-xl text-left border border-gray-100">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">GW</div>
-                <div>
-                  <div className="text-xs text-[#202124] font-sans">{siteName}</div>
-                  <div className="text-[11px] text-[#4d5156] font-sans">{articleUrl}</div>
-                </div>
-              </div>
-              <a href={articleUrl} target="_blank" rel="noopener noreferrer" className="block text-[20px] font-sans text-[#1a0dab] hover:underline cursor-pointer leading-tight mb-1">
-                {pageTitle}
-              </a>
-              <p className="text-[13px] text-[#4d5156] font-sans line-clamp-2">{metaDesc}</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm w-full max-w-sm text-left border border-gray-200 overflow-hidden">
-              <div className="w-full h-48 bg-gray-200 border-b border-gray-200">
-                <img src={coverImage} alt="Twitter card" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-3 bg-gray-50">
-                <div className="text-[13px] text-gray-500 font-sans mb-0.5">{siteUrl.replace(/^https?:\/\//, '')}</div>
-                <a href={articleUrl} target="_blank" rel="noopener noreferrer" className="block text-[15px] text-[#0f1419] font-sans font-bold leading-snug line-clamp-1 mb-0.5 hover:underline">
-                  {article.title}
-                </a>
-                <div className="text-[13px] text-gray-500 font-sans line-clamp-2">{metaDesc}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function ArticleView({ slug }: { slug: string }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,7 +54,6 @@ export default function ArticleView({ slug }: { slug: string }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [likedComments, setLikedComments] = useState<Record<string, boolean>>({});
   const [hasLikedArticle, setHasLikedArticle] = useState(false);
-  const [showSocialPreview, setShowSocialPreview] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const calculateReadTime = (text: string | undefined | null) => {
@@ -609,26 +540,6 @@ export default function ArticleView({ slug }: { slug: string }) {
         </aside>
       </div>
     </article>
-    
-    <button
-      onClick={() => setShowSocialPreview(true)}
-      className="fixed bottom-6 right-6 bg-[#111111] text-white p-3 rounded-full shadow-xl hover:bg-[#00a85a] hover:scale-105 transition-all z-[100] flex items-center justify-center group"
-      title="Preview SEO & Social Cards"
-    >
-      <Eye size={20} />
-      <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold text-xs uppercase tracking-widest group-hover:ml-2">
-        Preview SEO
-      </span>
-    </button>
-
-    {showSocialPreview && (
-      <SocialPreviewModal 
-        article={article} 
-        onClose={() => setShowSocialPreview(false)} 
-        siteUrl={SITE_URL} 
-        siteName={SITE_NAME} 
-      />
-    )}
     </>
   );
 }
